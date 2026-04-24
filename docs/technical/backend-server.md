@@ -58,13 +58,19 @@
 **Ответ 200 OK** (см. auth-telegram.md).
 **Ответ 401** при невалидной подписи или отсутствии заголовка.
 
+Потребитель: `frontend/index.html` (`Auth.loginTelegram()`), см. `docs/technical/frontend-auth-integration.md`.
+
 ### `GET /api/profile`
 Профиль текущего пользователя. Защищён `requireTelegramAuth`. Подробнее — `docs/technical/profile.md`.
 
 Возвращает `{ "profile": {...} }` если профиль создан, `{ "profile": null }` если нет.
 
+Потребитель: `frontend/index.html` (`Auth.afterLogin()`), см. `docs/technical/frontend-auth-integration.md`.
+
 ### `PUT /api/profile`
 Создаёт/обновляет профиль (PATCH-семантика: отсутствующие в теле поля не меняются). Защищён `requireTelegramAuth`. Body — JSON с полями профиля (см. `docs/technical/profile.md`). На входе принимаются оба формата ключей — snake_case и camelCase. Валидация значений по enum-спискам. При успехе — `{ "profile": {...} }`. При невалидном значении — `400` с указанием поля.
+
+Потребитель: `frontend/index.html` (`Onboarding.finish()`), см. `docs/technical/frontend-auth-integration.md`.
 
 ### Любой другой путь
 Ответ `404 Not Found`:
