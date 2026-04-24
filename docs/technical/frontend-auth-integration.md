@@ -37,11 +37,29 @@ Auth.afterLogin():
   └─ (не в TG) работать с тем, что в Storage
 
 Onboarding.finish():
-  ├─ Storage.set('profile', answers)   — всегда
-  ├─ (в TG) Api.putProfile(answers)
+  ├─ Собирает colorState из выбранной опции + текста «Уточнения»
+  │    в строку формата «<Метка>. Уточнения: <note>»
+  ├─ Storage.set('profile', {..., color: colorState})   — всегда (ключ `color` для совместимости)
+  ├─ (в TG) Api.putProfile({..., colorState})           — на бэк уже camelCase
   │    ├─ OK → показать app
   │    └─ FAIL → тост «сохранено локально», показать app
 ```
+
+## Онбординг: шаги
+Онбординг состоит из 6 шагов (eyebrow «Шаг N из 6»):
+1. `curlType` — тип кудрей (single)
+2. `porosity` — пористость (single)
+3. `thickness` — толщина волоса (single)
+4. `scalp` — кожа головы (single)
+5. `colorState` — окрашивание (single_with_note: выбор опции + опциональный textarea «Уточнения»)
+6. `goals` — цели ухода (multi)
+
+Для шага `colorState` кнопка «Дальше» активна, если выбрана одна из опций; текст уточнений не обязателен. В state онбординга значения хранятся как два отдельных ключа: `colorState_choice` (id опции) и `colorState_note` (строка), в `finish()` склеиваются в одну строку.
+
+## Редактирование профиля
+Кнопка «Изменить профиль» в `screen-profile` вызывает `Onboarding.start(false)`. В отличие от первого запуска — `reset=false`, текущие ответы предзаполняются в `state.answers` из `localStorage`. После прохождения онбординга `finish()` заново отправляет `PUT /api/profile` с обновлёнными полями.
+
+Для поля `colorState` реализован reverse-mapping из строки формата `«<Метка>. Уточнения: <note>»` обратно в `colorState_choice` + `colorState_note`. Если старое значение не распознано (например, предзаполнено вручную через curl / SQL до этой фичи) — целиком кладётся в `note` с дефолтным `choice = 'full'`, чтобы пользователь увидел что там было и мог поправить.
 
 ## Форматы данных
 Бэк принимает/отдаёт camelCase: `curlType`, `colorState`, `goals`.
@@ -64,3 +82,4 @@ Onboarding.finish():
 
 ## История изменений
 - 2026-04-24: Создан файл. Интеграция TG auth и profile с бэкендом.
+- 2026-04-24: Добавлен 6-й шаг онбординга — `colorState` (single_with_note). В `Onboarding.finish()` — сбор строки и отправка как `colorState` (camelCase) на бэк. Кнопка «Изменить профиль» переведена на `start(false)` с reverse-mapping существующего значения.

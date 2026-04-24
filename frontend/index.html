@@ -1318,7 +1318,7 @@ input, select, textarea { font: inherit; color: inherit; }
       </div>
     </div>
 
-    <button class="btn btn-ghost btn-block" onclick="Onboarding.start(true)">Изменить профиль</button>
+    <button class="btn btn-ghost btn-block" onclick="Onboarding.start(false)">Изменить профиль</button>
 
     <div style="height: 16px"></div>
 
@@ -1516,7 +1516,7 @@ const Onboarding = {
   steps: [
     {
       key: 'curlType',
-      eyebrow: 'Шаг 1 из 5',
+      eyebrow: 'Шаг 1 из 6',
       title: 'Какие у тебя <em>кудри</em>?',
       sub: 'По типологии Андре Уокера — самой популярной в КГМ',
       type: 'single',
@@ -1532,7 +1532,7 @@ const Onboarding = {
     },
     {
       key: 'porosity',
-      eyebrow: 'Шаг 2 из 5',
+      eyebrow: 'Шаг 2 из 6',
       title: 'Какая у волос <em>пористость</em>?',
       sub: 'Тест: брось чистый волос в стакан воды. Утонул быстро — высокая, плавает — низкая',
       type: 'single',
@@ -1545,7 +1545,7 @@ const Onboarding = {
     },
     {
       key: 'thickness',
-      eyebrow: 'Шаг 3 из 5',
+      eyebrow: 'Шаг 3 из 6',
       title: 'Какая <em>толщина</em> волоса?',
       sub: 'Возьми один волос между пальцами — еле чувствуется или ощущается?',
       type: 'single',
@@ -1557,7 +1557,7 @@ const Onboarding = {
     },
     {
       key: 'scalp',
-      eyebrow: 'Шаг 4 из 5',
+      eyebrow: 'Шаг 4 из 6',
       title: 'А <em>кожа головы</em>?',
       sub: 'Это влияет на выбор шампуня и частоту мытья',
       type: 'single',
@@ -1570,8 +1570,22 @@ const Onboarding = {
       ]
     },
     {
+      key: 'colorState',
+      eyebrow: 'Шаг 5 из 6',
+      title: '<em>Окрашивание</em>?',
+      sub: 'Это важно для точного анализа. Окрашивание сильно меняет поведение волос',
+      type: 'single_with_note',
+      options: [
+        { id: 'natural',  emoji: '🌿', title: 'Натуральный цвет', desc: 'Не окрашены' },
+        { id: 'full',     emoji: '🎨', title: 'Окрашивание по длине', desc: 'Стойкое или полуперманентное, полностью' },
+        { id: 'partial',  emoji: '✨', title: 'Мелирование/частичное', desc: 'Отдельные пряди, балаяж, омбре' },
+        { id: 'bleach',   emoji: '❄️', title: 'Обесцвечивание/блонд', desc: 'Требует особого ухода' },
+        { id: 'henna',    emoji: '🌱', title: 'Хна / басма', desc: 'Растительные красители' }
+      ]
+    },
+    {
       key: 'goals',
-      eyebrow: 'Шаг 5 из 5',
+      eyebrow: 'Шаг 6 из 6',
       title: 'Твои <em>цели</em> в уходе',
       sub: 'Можно выбрать несколько — анализ будет учитывать приоритеты',
       type: 'multi',
@@ -1594,7 +1608,41 @@ const Onboarding = {
 
   start(reset = false) {
     if (reset) Storage.del('profile');
-    this.state = { current: 0, answers: Storage.get('profile', {}) };
+    const profile = Storage.get('profile', {}) || {};
+    const answers = {
+      curlType:  profile.curlType,
+      porosity:  profile.porosity,
+      thickness: profile.thickness,
+      scalp:     profile.scalp,
+      goals:     profile.goals || []
+    };
+
+    // Разбираем colorState ("<Метка>. Уточнения: <note>") обратно в choice + note
+    if (profile.color) {
+      const CHOICE_MAP = {
+        'Натуральный цвет':       'natural',
+        'Окрашивание по длине':   'full',
+        'Мелирование/частичное':  'partial',
+        'Обесцвечивание/блонд':   'bleach',
+        'Хна / басма':            'henna'
+      };
+      for (const [label, id] of Object.entries(CHOICE_MAP)) {
+        if (profile.color.startsWith(label)) {
+          answers.colorState_choice = id;
+          const noteMatch = profile.color.match(/Уточнения:\s*(.+)$/);
+          if (noteMatch) answers.colorState_note = noteMatch[1];
+          break;
+        }
+      }
+      // Fallback: старое произвольное значение (например, заданное вручную в БД) —
+      // целиком в note с дефолтным choice 'full'.
+      if (!answers.colorState_choice) {
+        answers.colorState_choice = 'full';
+        answers.colorState_note = profile.color;
+      }
+    }
+
+    this.state = { current: 0, answers };
     document.getElementById('app').style.display = 'none';
     document.getElementById('onboarding-screen').classList.add('active');
     this.render();
@@ -1646,6 +1694,38 @@ const Onboarding = {
         `;
       });
       content += '</div>';
+    } else if (step.type === 'single_with_note') {
+      const selected = this.state.answers[step.key + '_choice'];
+      const noteValue = this.state.answers[step.key + '_note'] || '';
+      content += '<div class="onb-options">';
+      step.options.forEach(opt => {
+        const sel = selected === opt.id ? 'selected' : '';
+        content += `
+          <button class="onb-option ${sel}" onclick="Onboarding.selectSingleWithNote('${step.key}', '${opt.id}')">
+            <div class="onb-option-emoji">${opt.emoji}</div>
+            <div class="onb-option-content">
+              <div class="onb-option-title">${opt.title}</div>
+              <div class="onb-option-desc">${opt.desc}</div>
+            </div>
+          </button>
+        `;
+      });
+      content += '</div>';
+      const escapedNote = noteValue.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      content += `
+        <div style="margin-top:20px">
+          <label style="display:block; font-size:13px; color:var(--ink-soft); margin-bottom:8px">
+            Уточнения (необязательно)
+          </label>
+          <textarea
+            class="text-input-area"
+            id="onb-note-${step.key}"
+            placeholder="Например: окрашены в блонд 3 месяца назад, пористость выросла"
+            style="min-height:80px"
+            oninput="Onboarding.updateNote('${step.key}', this.value)"
+          >${escapedNote}</textarea>
+        </div>
+      `;
     }
 
     content += '</div>';
@@ -1663,6 +1743,7 @@ const Onboarding = {
     const ans = this.state.answers[step.key];
     if (step.type === 'single') return !!ans;
     if (step.type === 'multi') return Array.isArray(ans) && ans.length > 0;
+    if (step.type === 'single_with_note') return !!this.state.answers[step.key + '_choice'];
     return true;
   },
 
@@ -1677,6 +1758,19 @@ const Onboarding = {
     const i = arr.indexOf(value);
     if (i >= 0) arr.splice(i, 1); else arr.push(value);
     this.render();
+  },
+
+  selectSingleWithNote(key, value) {
+    this.state.answers[key + '_choice'] = value;
+    this.render();
+  },
+
+  updateNote(key, value) {
+    this.state.answers[key + '_note'] = value;
+    // Не вызываем render — иначе фокус textarea будет сбрасываться при каждой букве.
+    // Валидация кнопки "Дальше" зависит только от choice, но на всякий случай пересчитаем.
+    const nextBtn = document.getElementById('onb-next');
+    if (nextBtn) nextBtn.disabled = !this.isStepValid();
   },
 
   next() {
@@ -1699,20 +1793,43 @@ const Onboarding = {
   async finish() {
     const answers = this.state.answers;
 
-    // Локально — всегда
-    Storage.set('profile', answers);
+    // Собираем colorState из choice + note в одну строку
+    const CHOICE_LABELS = {
+      natural: 'Натуральный цвет',
+      full:    'Окрашивание по длине',
+      partial: 'Мелирование/частичное',
+      bleach:  'Обесцвечивание/блонд',
+      henna:   'Хна / басма'
+    };
+    let colorState = null;
+    if (answers.colorState_choice) {
+      colorState = CHOICE_LABELS[answers.colorState_choice] || '';
+      const note = (answers.colorState_note || '').trim();
+      if (note) {
+        colorState += `. Уточнения: ${note.slice(0, 400)}`;
+      }
+    }
+
+    // Локально — всегда. В localStorage поле называется `color` (совместимость).
+    Storage.set('profile', {
+      curlType:  answers.curlType,
+      porosity:  answers.porosity,
+      thickness: answers.thickness,
+      scalp:     answers.scalp,
+      color:     colorState,
+      goals:     answers.goals || []
+    });
 
     // На бэк — если в TG
     if (Api.canUseBackend()) {
       try {
-        // answers: { curlType, porosity, thickness, scalp, goals }
-        // colorState не собирается онбордингом — передаём только что есть
         const payload = {
-          curlType: answers.curlType ?? null,
-          porosity: answers.porosity ?? null,
-          thickness: answers.thickness ?? null,
-          scalp: answers.scalp ?? null,
-          goals: answers.goals ?? []
+          curlType:   answers.curlType ?? null,
+          porosity:   answers.porosity ?? null,
+          thickness:  answers.thickness ?? null,
+          scalp:      answers.scalp ?? null,
+          colorState: colorState,
+          goals:      answers.goals ?? []
         };
         await Api.putProfile(payload);
       } catch (err) {
