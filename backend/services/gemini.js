@@ -6,7 +6,7 @@
 
 const API_KEY = process.env.GEMINI_API_KEY;
 const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
+const API_URL = `https://hidden-heart-c18akudri-gemini-proxy.sergeixmao.workers.dev/v1beta/models/${MODEL}:generateContent`;
 const TIMEOUT_MS = 60000;
 
 if (!API_KEY) {
@@ -33,6 +33,11 @@ async function generate(parts, opts = {}) {
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+
+  console.log('[gemini] OUTGOING REQUEST');
+  console.log('[gemini] URL:', `${API_URL}?key=${API_KEY.slice(0,10)}...`);
+  console.log('[gemini] BODY:', JSON.stringify(body).slice(0, 800));
 
   let res;
   try {

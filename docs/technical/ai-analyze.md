@@ -66,6 +66,7 @@
 ## Настройки
 - `GEMINI_API_KEY` — ключ Google AI Studio (обязательно).
 - `GEMINI_MODEL` — опционально, по умолчанию `gemini-2.5-flash`.
+- `GEMINI_BASE_URL` — опционально, по умолчанию `https://generativelanguage.googleapis.com`. На проде используется URL Cloudflare Worker'а для обхода регионального блока Google в РФ. Подменяет только базовый домен — путь `/v1beta/models/...` остаётся прежним.
 
 ## Таймаут
 60 секунд на запрос к Gemini. При истечении — `502 gemini_timeout`. Реализовано через `AbortController`.
