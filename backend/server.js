@@ -14,7 +14,9 @@ const { getSchemaVersion, listTables, countRows, dbPath } = require('./services/
 const { getProfileByUserId, upsertProfile } = require('./services/profiles');
 const { analyzeInci } = require('./services/analyze');
 const scans = require('./services/scans');
+const aiAgents = require('./services/ai-agents');
 const requireTelegramAuth = require('./middleware/requireTelegramAuth');
+const requireAdmin = require('./middleware/requireAdmin');
 
 const PORT = parseInt(process.env.PORT, 10) || 3001;
 const HOST = '127.0.0.1';
@@ -165,6 +167,76 @@ app.delete('/api/scans/:id', requireTelegramAuth, (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     console.error('[DELETE /api/scans/:id]', err);
+    res.status(500).json({ error: 'delete_failed' });
+  }
+});
+
+// ─── Админ · CRUD AI-агентов ───────────────────────────────
+// Все /api/admin/agents требуют is_admin (проверка платформой Telegram).
+
+// GET /api/admin/agents — список всех агентов
+app.get('/api/admin/agents', requireTelegramAuth, requireAdmin, (req, res) => {
+  try {
+    res.json({ agents: aiAgents.listAgents() });
+  } catch (err) {
+    console.error('[GET /api/admin/agents]', err);
+    res.status(500).json({ error: 'list_failed' });
+  }
+});
+
+// GET /api/admin/agents/:id — один агент
+app.get('/api/admin/agents/:id', requireTelegramAuth, requireAdmin, (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (!id) return res.status(400).json({ error: 'bad_id' });
+    const agent = aiAgents.getAgentById(id);
+    if (!agent) return res.status(404).json({ error: 'not_found' });
+    res.json({ agent });
+  } catch (err) {
+    console.error('[GET /api/admin/agents/:id]', err);
+    res.status(500).json({ error: 'read_failed' });
+  }
+});
+
+// POST /api/admin/agents — создать
+app.post('/api/admin/agents', requireTelegramAuth, requireAdmin, (req, res) => {
+  try {
+    const result = aiAgents.createAgent(req.body);
+    if (result.error) {
+      return res.status(400).json({ error: result.error, field: result.field });
+    }
+    res.status(201).json({ agent: result.agent });
+  } catch (err) {
+    console.error('[POST /api/admin/agents]', err);
+    res.status(500).json({ error: 'create_failed' });
+  }
+});
+
+// PUT /api/admin/agents/:id — обновить (PATCH-семантика)
+app.put('/api/admin/agents/:id', requireTelegramAuth, requireAdmin, (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (!id) return res.status(400).json({ error: 'bad_id' });
+    const result = aiAgents.updateAgent(id, req.body);
+    if (result === null) return res.status(404).json({ error: 'not_found' });
+    if (result.error) return res.status(400).json({ error: result.error, field: result.field });
+    res.json({ agent: result.agent });
+  } catch (err) {
+    console.error('[PUT /api/admin/agents/:id]', err);
+    res.status(500).json({ error: 'update_failed' });
+  }
+});
+
+// DELETE /api/admin/agents/:id — удалить
+app.delete('/api/admin/agents/:id', requireTelegramAuth, requireAdmin, (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (!id) return res.status(400).json({ error: 'bad_id' });
+    const ok = aiAgents.deleteAgent(id);
+    if (!ok) return res.status(404).json({ error: 'not_found' });
+    res.status(204).end();
+  } catch (err) {
+    console.error('[DELETE /api/admin/agents/:id]', err);
     res.status(500).json({ error: 'delete_failed' });
   }
 });
