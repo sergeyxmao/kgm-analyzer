@@ -10,6 +10,8 @@ const express = require('express');
 // Загружаем .env из backend/.env (рядом с этим файлом)
 dotenv.config({ path: path.join(__dirname, '.env') });
 
+const { getSchemaVersion, listTables, countRows, dbPath } = require('./services/db');
+
 const PORT = parseInt(process.env.PORT, 10) || 3001;
 const HOST = '127.0.0.1';
 
@@ -26,6 +28,22 @@ app.get('/health', (req, res) => {
     uptime: Math.round(process.uptime()),
     timestamp: new Date().toISOString()
   });
+});
+
+// Диагностика БД — подтверждает что сервер видит файл, схема применена, считаны все таблицы
+app.get('/db-status', (req, res) => {
+  try {
+    res.json({
+      status: 'ok',
+      dbPath: dbPath,
+      schemaVersion: getSchemaVersion(),
+      tables: listTables(),
+      counts: countRows()
+    });
+  } catch (err) {
+    console.error('[db-status]', err);
+    res.status(500).json({ status: 'error', error: err.message });
+  }
 });
 
 // Все прочие пути — 404 JSON

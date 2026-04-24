@@ -31,6 +31,25 @@
 }
 ```
 
+### `GET /db-status`
+Диагностика БД. Возвращает: путь к файлу, версию схемы, список таблиц, количество строк в каждой. Используется для верификации что Node видит БД и схема применена.
+
+**Ответ 200 OK:**
+```json
+{
+  "status": "ok",
+  "dbPath": "/var/www/kudri/data/kudri.db",
+  "schemaVersion": 1,
+  "tables": ["profiles", "scans", "schema_migrations", "settings", "users"],
+  "counts": { "users": 0, "profiles": 0, "scans": 0, "settings": 0, "schema_migrations": 1 }
+}
+```
+
+**Ответ 500 при ошибке БД:**
+```json
+{ "status": "error", "error": "SQLITE_CANTOPEN: unable to open database file" }
+```
+
 ### Любой другой путь
 Ответ `404 Not Found`:
 ```json
