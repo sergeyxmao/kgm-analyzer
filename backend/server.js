@@ -13,6 +13,7 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 const { getSchemaVersion, listTables, countRows, dbPath } = require('./services/db');
 const { getProfileByUserId, upsertProfile } = require('./services/profiles');
 const { analyzeInci } = require('./services/analyze');
+const scans = require('./services/scans');
 const requireTelegramAuth = require('./middleware/requireTelegramAuth');
 
 const PORT = parseInt(process.env.PORT, 10) || 3001;
@@ -105,6 +106,66 @@ app.post('/api/analyze', requireTelegramAuth, async (req, res) => {
   } catch (err) {
     console.error('[POST /api/analyze]', err);
     res.status(500).json({ error: 'analyze_failed' });
+  }
+});
+
+// POST /api/scans — создать запись о скане (после успешного /api/analyze)
+app.post('/api/scans', requireTelegramAuth, (req, res) => {
+  try {
+    const data = req.body || {};
+    if (!data.verdict) return res.status(400).json({ error: 'verdict_required' });
+    const scan = scans.createScan(req.user.id, data);
+    res.status(201).json({ scan });
+  } catch (err) {
+    if (err.code === 'bad_verdict') return res.status(400).json({ error: err.code });
+    console.error('[POST /api/scans]', err);
+    res.status(500).json({ error: 'create_failed' });
+  }
+});
+
+// GET /api/scans — список сканов текущего пользователя с фильтром
+app.get('/api/scans', requireTelegramAuth, (req, res) => {
+  try {
+    const shelf = req.query.shelf || 'all';
+    const limit = req.query.limit || 50;
+    const list = scans.listScans(req.user.id, shelf, limit);
+    res.json({ scans: list });
+  } catch (err) {
+    if (err.code === 'bad_shelf') return res.status(400).json({ error: err.code });
+    console.error('[GET /api/scans]', err);
+    res.status(500).json({ error: 'list_failed' });
+  }
+});
+
+// PUT /api/scans/:id/shelf — переместить на полку
+app.put('/api/scans/:id/shelf', requireTelegramAuth, (req, res) => {
+  try {
+    const scanId = parseInt(req.params.id, 10);
+    if (!scanId) return res.status(400).json({ error: 'bad_id' });
+    const shelf = req.body?.shelf;
+    if (!shelf) return res.status(400).json({ error: 'shelf_required' });
+
+    const scan = scans.updateShelf(scanId, req.user.id, shelf);
+    if (!scan) return res.status(404).json({ error: 'not_found' });
+    res.json({ scan });
+  } catch (err) {
+    if (err.code === 'bad_shelf') return res.status(400).json({ error: err.code });
+    console.error('[PUT /api/scans/:id/shelf]', err);
+    res.status(500).json({ error: 'update_failed' });
+  }
+});
+
+// DELETE /api/scans/:id — удалить скан (только свой)
+app.delete('/api/scans/:id', requireTelegramAuth, (req, res) => {
+  try {
+    const scanId = parseInt(req.params.id, 10);
+    if (!scanId) return res.status(400).json({ error: 'bad_id' });
+    const ok = scans.deleteScan(scanId, req.user.id);
+    if (!ok) return res.status(404).json({ error: 'not_found' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[DELETE /api/scans/:id]', err);
+    res.status(500).json({ error: 'delete_failed' });
   }
 });
 

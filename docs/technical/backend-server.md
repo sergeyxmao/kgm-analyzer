@@ -77,6 +77,13 @@
 
 Тело запроса может быть крупным (base64-фото) — для этого на уровне Express поднят лимит JSON до `10mb`.
 
+Потребитель: `frontend/index.html` (`Scanner.analyze`), см. `docs/technical/scanner-flow.md`.
+
+### `POST /api/scans`, `GET /api/scans`, `PUT /api/scans/:id/shelf`, `DELETE /api/scans/:id`
+CRUD для сканов. Всё защищено `requireTelegramAuth`. `POST` создаёт запись после успешного `/api/analyze` (фильтр через `user_id` — пользователь видит только свои сканы). `GET` принимает `?shelf=all|history|mine|wishlist|rejected` и `?limit=` (1..100, default 50), `all` отдаёт всё включая `history`. `PUT /api/scans/:id/shelf` перемещает на полку, `DELETE` удаляет. Подробнее — `docs/technical/scans-api.md`.
+
+Потребители: `frontend/index.html` (`Scanner.saveTo`, `Catalog.load`, `App.refreshRecent`), см. `docs/technical/scanner-flow.md`.
+
 ### Любой другой путь
 Ответ `404 Not Found`:
 ```json
