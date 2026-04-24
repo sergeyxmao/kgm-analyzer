@@ -11,6 +11,7 @@ const express = require('express');
 dotenv.config({ path: path.join(__dirname, '.env') });
 
 const { getSchemaVersion, listTables, countRows, dbPath } = require('./services/db');
+const { getProfileByUserId, upsertProfile } = require('./services/profiles');
 const requireTelegramAuth = require('./middleware/requireTelegramAuth');
 
 const PORT = parseInt(process.env.PORT, 10) || 3001;
@@ -61,6 +62,31 @@ app.get('/api/me', requireTelegramAuth, (req, res) => {
     createdAt: req.user.created_at,
     lastSeenAt: req.user.last_seen_at
   });
+});
+
+// Получить профиль текущего пользователя
+app.get('/api/profile', requireTelegramAuth, (req, res) => {
+  try {
+    const profile = getProfileByUserId(req.user.id);
+    res.json({ profile });
+  } catch (err) {
+    console.error('[GET /api/profile]', err);
+    res.status(500).json({ error: 'profile_read_failed' });
+  }
+});
+
+// Создать/обновить профиль текущего пользователя (PATCH-семантика)
+app.put('/api/profile', requireTelegramAuth, (req, res) => {
+  try {
+    const result = upsertProfile(req.user.id, req.body);
+    if (result.error) {
+      return res.status(400).json({ error: result.error, field: result.field });
+    }
+    res.json({ profile: result.profile });
+  } catch (err) {
+    console.error('[PUT /api/profile]', err);
+    res.status(500).json({ error: 'profile_write_failed' });
+  }
 });
 
 // Все прочие пути — 404 JSON
