@@ -1,0 +1,2216 @@
+<!DOCTYPE html> 
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#FFE8DC">
+<title>КУДРИ · анализ состава</title>
+<meta name="description" content="КУДРИ — анализ косметики по составу для кудрявых волос">
+<meta property="og:title" content="КУДРИ">
+<meta property="og:description" content="Сфотографируй INCI — узнай, подходит ли средство твоим кудрям">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+<script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════════════════
+   ДИЗАЙН-СИСТЕМА · CURLLY
+   Pastel Premium · Glossier × Aesop × Ouai
+   ═══════════════════════════════════════════════════════ */
+
+:root {
+  /* Палитра — пастель, но насыщенная, не детская */
+  --peach-50:  #FFF5EE;
+  --peach-100: #FFE8DC;
+  --peach-200: #FFD4BD;
+  --peach-300: #FFB890;
+  --peach-400: #FF9560;
+
+  --rose-50:  #FFF0F2;
+  --rose-100: #FFD9DF;
+  --rose-200: #FFB8C5;
+  --rose-300: #FF8FA3;
+  --rose-400: #E85A75;
+
+  --terracotta: #C8593A;
+  --terracotta-soft: #E8A491;
+
+  --cream: #FDFAF6;
+  --bone:  #F5EFE7;
+  --sand:  #E8DDD0;
+
+  --ink:        #2A1F1A;
+  --ink-soft:   #5C4A40;
+  --ink-mute:   #9B8B82;
+  --ink-faint:  #C9BDB4;
+
+  --gold:       #C9A961;
+  --gold-soft:  #F0E4C5;
+
+  --green:      #6B8E5A;
+  --green-soft: #DCE7D0;
+
+  --danger:     #C8553D;
+  --danger-soft:#F4DACE;
+
+  --warning:    #D4923D;
+  --warning-soft:#F8E5C8;
+
+  /* Геометрия */
+  --r-xs: 8px;
+  --r-sm: 12px;
+  --r-md: 18px;
+  --r-lg: 24px;
+  --r-xl: 32px;
+  --r-pill: 999px;
+
+  /* Тени — мягкие, тёплые */
+  --shadow-xs: 0 1px 2px rgba(42, 31, 26, 0.04);
+  --shadow-sm: 0 2px 8px rgba(232, 90, 117, 0.08), 0 1px 2px rgba(42, 31, 26, 0.04);
+  --shadow-md: 0 8px 24px rgba(232, 90, 117, 0.10), 0 2px 6px rgba(42, 31, 26, 0.06);
+  --shadow-lg: 0 16px 48px rgba(232, 90, 117, 0.14), 0 4px 12px rgba(42, 31, 26, 0.08);
+
+  /* Типографика */
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Inter', -apple-system, sans-serif;
+
+  /* Сетка */
+  --container: 480px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink);
+  background: var(--cream);
+  min-height: 100vh;
+  overscroll-behavior-y: contain;
+}
+
+body {
+  background:
+    radial-gradient(ellipse 800px 600px at 50% -200px, var(--peach-100) 0%, transparent 60%),
+    radial-gradient(ellipse 600px 400px at 100% 30%, var(--rose-100) 0%, transparent 50%),
+    var(--cream);
+  background-attachment: fixed;
+}
+
+/* Декоративный шум для премиальности */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.4;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3CfeColorMatrix values='0 0 0 0 0.6 0 0 0 0 0.4 0 0 0 0 0.4 0 0 0 0.04 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+input, select, textarea { font: inherit; color: inherit; }
+
+/* ═══════════════════════════════════════════════════════
+   КАРКАС ПРИЛОЖЕНИЯ
+   ═══════════════════════════════════════════════════════ */
+
+.app {
+  position: relative;
+  z-index: 2;
+  max-width: var(--container);
+  margin: 0 auto;
+  min-height: 100vh;
+  padding-top: var(--safe-top);
+  padding-bottom: calc(76px + var(--safe-bottom));
+}
+
+/* ── Шапка ── */
+.topbar {
+  position: sticky;
+  top: var(--safe-top);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 14px;
+  background: linear-gradient(180deg, var(--cream) 0%, rgba(253, 250, 246, 0.92) 70%, transparent 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.topbar-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.topbar-logo {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 22px;
+  letter-spacing: 1px;
+  color: var(--ink);
+  font-variation-settings: "opsz" 96;
+}
+.topbar-logo span {
+  color: var(--rose-400);
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.topbar-tag {
+  font-size: 11px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--terracotta);
+  font-weight: 600;
+  padding: 3px 9px;
+  background: var(--peach-100);
+  border-radius: var(--r-pill);
+}
+.topbar-actions {
+  display: flex;
+  gap: 8px;
+}
+.topbar-btn {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 232, 220, 0.6);
+  color: var(--ink-soft);
+  transition: all 0.2s;
+}
+.topbar-btn:hover, .topbar-btn:active {
+  background: var(--peach-200);
+  transform: scale(0.95);
+}
+.topbar-btn svg { width: 18px; height: 18px; }
+
+/* ── Контент ── */
+.screen {
+  display: none;
+  padding: 8px 20px 24px;
+  animation: screenIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.screen.active { display: block; }
+@keyframes screenIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Нижняя навигация ── */
+.tabbar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 50;
+  padding: 8px 12px calc(8px + var(--safe-bottom));
+  background: linear-gradient(180deg, transparent 0%, var(--cream) 30%);
+  pointer-events: none;
+}
+.tabbar-inner {
+  pointer-events: auto;
+  max-width: var(--container);
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid rgba(255, 184, 144, 0.25);
+  border-radius: var(--r-pill);
+  padding: 6px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  box-shadow: var(--shadow-md);
+}
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border-radius: var(--r-pill);
+  color: var(--ink-mute);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+.tab svg { width: 20px; height: 20px; }
+.tab.active {
+  background: linear-gradient(135deg, var(--peach-200), var(--rose-200));
+  color: var(--terracotta);
+  font-weight: 600;
+}
+.tab.active svg { stroke-width: 2; }
+
+/* ═══════════════════════════════════════════════════════
+   ОНБОРДИНГ — отдельный фуллскрин
+   ═══════════════════════════════════════════════════════ */
+
+.onboarding {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: none;
+  flex-direction: column;
+  background:
+    radial-gradient(ellipse 600px 400px at 30% 0%, var(--rose-100) 0%, transparent 60%),
+    radial-gradient(ellipse 500px 500px at 100% 100%, var(--peach-200) 0%, transparent 60%),
+    var(--cream);
+  padding: var(--safe-top) 0 var(--safe-bottom);
+  overflow-y: auto;
+}
+.onboarding.active { display: flex; }
+.onb-inner {
+  max-width: var(--container);
+  margin: 0 auto;
+  width: 100%;
+  padding: 24px 24px 100px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.onb-progress {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 32px;
+}
+.onb-progress-bar {
+  flex: 1;
+  height: 3px;
+  background: rgba(42, 31, 26, 0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.onb-progress-bar.done {
+  background: var(--rose-300);
+}
+.onb-progress-bar.current::after {
+  content: '';
+  display: block;
+  height: 100%;
+  background: var(--rose-300);
+  animation: fillBar 0.5s ease forwards;
+}
+@keyframes fillBar { from { width: 0; } to { width: 100%; } }
+
+.onb-step { animation: screenIn 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+.onb-eyebrow {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--rose-400);
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.onb-title {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.8px;
+  margin-bottom: 12px;
+  color: var(--ink);
+  font-variation-settings: "opsz" 96;
+}
+.onb-title em {
+  font-style: italic;
+  color: var(--terracotta);
+  font-weight: 400;
+}
+.onb-sub {
+  font-size: 15px;
+  color: var(--ink-soft);
+  margin-bottom: 32px;
+  max-width: 360px;
+}
+.onb-options {
+  display: grid;
+  gap: 12px;
+}
+.onb-option {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1.5px solid transparent;
+  border-radius: var(--r-md);
+  text-align: left;
+  width: 100%;
+  transition: all 0.2s;
+  backdrop-filter: blur(8px);
+}
+.onb-option:hover { background: white; }
+.onb-option.selected {
+  background: white;
+  border-color: var(--rose-300);
+  box-shadow: var(--shadow-sm);
+}
+.onb-option-emoji {
+  font-size: 28px;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  background: var(--peach-100);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.onb-option.selected .onb-option-emoji { background: var(--rose-100); }
+.onb-option-content { flex: 1; min-width: 0; }
+.onb-option-title {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+.onb-option-desc {
+  font-size: 13px;
+  color: var(--ink-mute);
+  line-height: 1.4;
+}
+
+.onb-multi-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.onb-chip {
+  padding: 14px 12px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1.5px solid transparent;
+  border-radius: var(--r-sm);
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  transition: all 0.2s;
+}
+.onb-chip.selected {
+  background: var(--rose-200);
+  color: var(--ink);
+  border-color: var(--rose-300);
+  font-weight: 600;
+}
+
+.onb-nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  padding: 16px 24px calc(16px + var(--safe-bottom));
+  background: linear-gradient(180deg, transparent, var(--cream) 40%);
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+.onb-nav-inner {
+  max-width: var(--container);
+  width: 100%;
+  display: flex;
+  gap: 12px;
+}
+.btn {
+  padding: 16px 28px;
+  border-radius: var(--r-pill);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.1px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--rose-400), var(--terracotta));
+  color: white;
+  box-shadow: 0 4px 16px rgba(232, 90, 117, 0.3);
+  flex: 1;
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(232, 90, 117, 0.4); }
+.btn-primary:active { transform: scale(0.98); }
+.btn-primary:disabled {
+  background: var(--ink-faint);
+  box-shadow: none;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.6);
+  color: var(--ink-soft);
+  border: 1px solid var(--sand);
+}
+.btn-ghost:hover { background: white; }
+.btn-block { width: 100%; }
+
+/* ═══════════════════════════════════════════════════════
+   ЭКРАН ВХОДА
+   ═══════════════════════════════════════════════════════ */
+
+.auth {
+  position: fixed; inset: 0; z-index: 200;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background:
+    radial-gradient(ellipse 700px 500px at 50% 30%, var(--peach-200) 0%, transparent 60%),
+    radial-gradient(ellipse 500px 400px at 100% 100%, var(--rose-200) 0%, transparent 60%),
+    var(--cream);
+}
+.auth.active { display: flex; }
+.auth-inner {
+  max-width: 360px;
+  width: 100%;
+  text-align: center;
+}
+.auth-mark {
+  font-family: var(--font-display);
+  font-size: 64px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: 2px;
+  margin-bottom: 12px;
+  font-variation-settings: "opsz" 144;
+}
+.auth-mark span {
+  color: var(--rose-400);
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.auth-tagline {
+  display: inline-block;
+  font-size: 11px;
+  color: var(--terracotta);
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 48px;
+  padding: 5px 14px;
+  background: var(--peach-100);
+  border-radius: var(--r-pill);
+}
+.auth-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 184, 144, 0.3);
+  border-radius: var(--r-lg);
+  padding: 32px 24px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-md);
+  text-align: center;
+}
+.auth-platform-icon {
+  width: 64px; height: 64px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: white;
+}
+.auth-platform-icon svg { width: 32px; height: 32px; }
+.auth-platform-icon.tg { background: #229ED9; }
+.auth-platform-icon.vk { background: #0077FF; }
+.auth-platform-icon.web { background: linear-gradient(135deg, var(--peach-300), var(--rose-300)); }
+.auth-greeting {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.3px;
+  color: var(--ink);
+  margin-bottom: 6px;
+  font-variation-settings: "opsz" 96;
+}
+.auth-greeting em { font-style: italic; color: var(--terracotta); }
+.auth-greeting-sub {
+  font-size: 13px;
+  color: var(--ink-mute);
+  margin-bottom: 24px;
+}
+.auth-tg-btn {
+  width: 100%;
+  padding: 14px;
+  background: #229ED9;
+  color: white;
+  border-radius: var(--r-sm);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.auth-vk-btn {
+  width: 100%;
+  padding: 14px;
+  background: #0077FF;
+  color: white;
+  border-radius: var(--r-sm);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.auth-hint {
+  font-size: 12px;
+  color: var(--ink-mute);
+  text-align: center;
+  margin-top: 20px;
+  padding: 14px;
+  background: var(--peach-50);
+  border-radius: var(--r-sm);
+  line-height: 1.5;
+}
+.auth-guest {
+  font-size: 13px;
+  color: var(--ink-mute);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  display: block;
+  margin: 0 auto;
+}
+
+/* ═══════════════════════════════════════════════════════
+   ГЛАВНАЯ — DASHBOARD
+   ═══════════════════════════════════════════════════════ */
+
+.greeting {
+  margin-bottom: 24px;
+  padding: 4px 4px 0;
+}
+.greeting-eyebrow {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+.greeting-title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.5px;
+  color: var(--ink);
+  font-variation-settings: "opsz" 96;
+}
+.greeting-title em {
+  font-style: italic;
+  color: var(--terracotta);
+}
+
+/* Главная кнопка-сканер */
+.hero-scan {
+  position: relative;
+  width: 100%;
+  padding: 32px 24px;
+  border-radius: var(--r-xl);
+  background:
+    radial-gradient(ellipse 300px 200px at 30% 30%, rgba(255, 255, 255, 0.5) 0%, transparent 60%),
+    linear-gradient(135deg, var(--rose-300) 0%, var(--terracotta) 60%, var(--peach-400) 100%);
+  color: white;
+  text-align: left;
+  margin-bottom: 24px;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  transition: transform 0.2s;
+}
+.hero-scan:active { transform: scale(0.98); }
+.hero-scan::before {
+  content: '';
+  position: absolute;
+  top: -40%; right: -20%;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(255,255,255,0.25), transparent 70%);
+  border-radius: 50%;
+}
+.hero-scan-eyebrow {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  font-weight: 500;
+  opacity: 0.85;
+  margin-bottom: 8px;
+}
+.hero-scan-title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1.05;
+  letter-spacing: -0.5px;
+  margin-bottom: 4px;
+  font-variation-settings: "opsz" 96;
+}
+.hero-scan-title em { font-style: italic; }
+.hero-scan-sub {
+  font-size: 13px;
+  opacity: 0.85;
+  margin-bottom: 20px;
+}
+.hero-scan-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: white;
+  color: var(--terracotta);
+  border-radius: var(--r-pill);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+/* Карточки разделов */
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 28px 4px 14px;
+}
+.section-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 500;
+  font-style: italic;
+  color: var(--ink);
+  font-variation-settings: "opsz" 48;
+}
+.section-link {
+  font-size: 12px;
+  color: var(--rose-400);
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+
+.profile-summary {
+  background: white;
+  border-radius: var(--r-lg);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 20px;
+}
+.profile-avatar {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--peach-200), var(--rose-200));
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+.profile-info { flex: 1; min-width: 0; }
+.profile-info-name { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+.profile-info-meta {
+  font-size: 12px;
+  color: var(--ink-mute);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+.profile-edit {
+  font-size: 12px;
+  color: var(--rose-400);
+  font-weight: 500;
+}
+
+.recent-list { display: grid; gap: 10px; }
+.recent-item {
+  background: white;
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: var(--shadow-xs);
+  transition: transform 0.15s;
+}
+.recent-item:active { transform: scale(0.98); }
+.recent-item-icon {
+  width: 40px; height: 40px;
+  border-radius: var(--r-sm);
+  background: var(--peach-100);
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.recent-item-content { flex: 1; min-width: 0; }
+.recent-item-name {
+  font-weight: 500;
+  font-size: 14px;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.recent-item-date { font-size: 11px; color: var(--ink-mute); }
+.recent-item-badge {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: var(--r-pill);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+.badge-good   { background: var(--green-soft); color: var(--green); }
+.badge-warn   { background: var(--warning-soft); color: var(--warning); }
+.badge-bad    { background: var(--danger-soft); color: var(--danger); }
+
+.tip-card {
+  background: linear-gradient(135deg, var(--gold-soft), var(--peach-100));
+  border-radius: var(--r-lg);
+  padding: 20px;
+  margin-bottom: 8px;
+  position: relative;
+  overflow: hidden;
+}
+.tip-card-eyebrow {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.tip-card-text {
+  font-family: var(--font-display);
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--ink);
+  font-style: italic;
+  font-variation-settings: "opsz" 48;
+}
+
+.empty {
+  text-align: center;
+  padding: 32px 20px;
+  color: var(--ink-mute);
+}
+.empty-emoji { font-size: 36px; margin-bottom: 12px; opacity: 0.7; }
+.empty-text { font-size: 13px; }
+
+/* ═══════════════════════════════════════════════════════
+   СКАНЕР
+   ═══════════════════════════════════════════════════════ */
+
+.scan-modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  background: var(--bone);
+  padding: 4px;
+  border-radius: var(--r-pill);
+  margin-bottom: 20px;
+}
+.scan-mode {
+  padding: 10px;
+  text-align: center;
+  border-radius: var(--r-pill);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-mute);
+  transition: all 0.2s;
+}
+.scan-mode.active {
+  background: white;
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: var(--shadow-xs);
+}
+
+.upload-zone {
+  border: 2px dashed var(--peach-300);
+  border-radius: var(--r-lg);
+  padding: 48px 24px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 16px;
+}
+.upload-zone:hover { background: white; border-color: var(--rose-300); }
+.upload-zone-icon {
+  width: 64px; height: 64px;
+  margin: 0 auto 16px;
+  background: linear-gradient(135deg, var(--peach-200), var(--rose-200));
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--terracotta);
+}
+.upload-zone-icon svg { width: 28px; height: 28px; }
+.upload-zone-title {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 18px;
+  margin-bottom: 4px;
+  color: var(--ink);
+}
+.upload-zone-sub { font-size: 12px; color: var(--ink-mute); }
+
+.preview-img {
+  width: 100%;
+  max-height: 320px;
+  object-fit: cover;
+  border-radius: var(--r-md);
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.text-input-area {
+  width: 100%;
+  min-height: 140px;
+  padding: 16px;
+  background: white;
+  border: 1.5px solid var(--sand);
+  border-radius: var(--r-md);
+  font-size: 14px;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: var(--font-body);
+  margin-bottom: 16px;
+}
+.text-input-area:focus { border-color: var(--rose-300); }
+
+/* Анализ результата */
+.analysis-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 20px;
+  text-align: center;
+}
+.spinner {
+  width: 48px; height: 48px;
+  border: 3px solid var(--peach-100);
+  border-top-color: var(--rose-400);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.analysis-loading-text {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 16px;
+  color: var(--ink-soft);
+}
+
+.verdict-card {
+  background: white;
+  border-radius: var(--r-lg);
+  padding: 24px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-md);
+  position: relative;
+  overflow: hidden;
+}
+.verdict-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+}
+.verdict-card.good::before    { background: linear-gradient(90deg, var(--green), var(--green-soft)); }
+.verdict-card.warn::before    { background: linear-gradient(90deg, var(--warning), var(--gold-soft)); }
+.verdict-card.bad::before     { background: linear-gradient(90deg, var(--danger), var(--terracotta-soft)); }
+
+.verdict-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.verdict-icon {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.verdict-card.good .verdict-icon { background: var(--green-soft); }
+.verdict-card.warn .verdict-icon { background: var(--warning-soft); }
+.verdict-card.bad  .verdict-icon { background: var(--danger-soft); }
+.verdict-status {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.3px;
+  margin-bottom: 2px;
+}
+.verdict-status em { font-style: italic; color: var(--terracotta); }
+.verdict-meta { font-size: 12px; color: var(--ink-mute); }
+.verdict-summary {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin-bottom: 16px;
+}
+
+.ingredient-list {
+  display: grid;
+  gap: 8px;
+}
+.ingredient-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--cream);
+  border-radius: var(--r-sm);
+}
+.ingredient-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+.ingredient-dot.good { background: var(--green); }
+.ingredient-dot.warn { background: var(--warning); }
+.ingredient-dot.bad  { background: var(--danger); }
+.ingredient-content { flex: 1; min-width: 0; }
+.ingredient-name {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+.ingredient-note {
+  font-size: 12px;
+  color: var(--ink-mute);
+  line-height: 1.4;
+}
+
+.action-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 16px;
+}
+.action-btn {
+  padding: 12px;
+  background: white;
+  border: 1px solid var(--sand);
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+.action-btn:active { transform: scale(0.97); }
+.action-btn svg { width: 14px; height: 14px; }
+.action-btn.saved { background: var(--rose-100); border-color: var(--rose-300); color: var(--terracotta); }
+
+/* ═══════════════════════════════════════════════════════
+   КАТАЛОГ
+   ═══════════════════════════════════════════════════════ */
+
+.catalog-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 16px;
+  scrollbar-width: none;
+}
+.catalog-tabs::-webkit-scrollbar { display: none; }
+.catalog-tab {
+  padding: 8px 14px;
+  background: white;
+  border-radius: var(--r-pill);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  border: 1px solid var(--sand);
+  flex-shrink: 0;
+}
+.catalog-tab.active {
+  background: var(--ink);
+  color: white;
+  border-color: var(--ink);
+}
+
+/* ═══════════════════════════════════════════════════════
+   ПРОФИЛЬ
+   ═══════════════════════════════════════════════════════ */
+
+.profile-card {
+  background: white;
+  border-radius: var(--r-lg);
+  padding: 20px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
+}
+.profile-card-head {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.profile-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--bone);
+}
+.profile-row:last-child { border-bottom: none; }
+.profile-row-label { font-size: 13px; color: var(--ink-soft); }
+.profile-row-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* ═══════════════════════════════════════════════════════
+   TOAST
+   ═══════════════════════════════════════════════════════ */
+
+.toast {
+  position: fixed;
+  bottom: calc(96px + var(--safe-bottom));
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--ink);
+  color: white;
+  padding: 12px 20px;
+  border-radius: var(--r-pill);
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 100;
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: var(--shadow-lg);
+  pointer-events: none;
+}
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+/* ═══════════════════════════════════════════════════════
+   АДАПТИВ
+   ═══════════════════════════════════════════════════════ */
+
+@media (max-width: 380px) {
+  .greeting-title, .onb-title { font-size: 26px; }
+  .hero-scan-title { font-size: 24px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     ЭКРАН ВХОДА
+     ═══════════════════════════════════════════════════════ -->
+
+<div class="auth" id="auth-screen">
+  <div class="auth-inner">
+    <div class="auth-mark">КУ<span>ДРИ</span></div>
+    <div class="auth-tagline">анализ состава</div>
+
+    <div class="auth-card" id="auth-card">
+      <!-- Контент авто-генерируется в Auth.renderEntry() -->
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     ОНБОРДИНГ
+     ═══════════════════════════════════════════════════════ -->
+
+<div class="onboarding" id="onboarding-screen">
+  <div class="onb-inner">
+    <div class="onb-progress" id="onb-progress"></div>
+    <div id="onb-content"></div>
+  </div>
+  <div class="onb-nav">
+    <div class="onb-nav-inner">
+      <button class="btn btn-ghost" id="onb-back" onclick="Onboarding.back()" style="display:none">Назад</button>
+      <button class="btn btn-primary" id="onb-next" onclick="Onboarding.next()" disabled>Дальше</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     ОСНОВНОЕ ПРИЛОЖЕНИЕ
+     ═══════════════════════════════════════════════════════ -->
+
+<div class="app" id="app" style="display:none">
+
+  <header class="topbar">
+    <div class="topbar-brand">
+      <div class="topbar-logo">КУ<span>ДРИ</span></div>
+    </div>
+    <div class="topbar-actions">
+      <button class="topbar-btn" onclick="App.toast('Уведомления скоро')" title="Уведомления">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ── ГЛАВНАЯ ── -->
+  <section class="screen active" id="screen-home">
+    <div class="greeting">
+      <div class="greeting-eyebrow">Доброе утро</div>
+      <h1 class="greeting-title">Готова к <em>анализу</em><br>сегодняшних находок?</h1>
+    </div>
+
+    <button class="hero-scan" onclick="App.go('scan')">
+      <div class="hero-scan-eyebrow">Сканер состава</div>
+      <div class="hero-scan-title">Проверить <em>средство</em></div>
+      <div class="hero-scan-sub">Сфотографируй INCI — получи вердикт за 5 секунд</div>
+      <span class="hero-scan-cta">
+        Начать
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </span>
+    </button>
+
+    <div class="profile-summary" onclick="App.go('profile')">
+      <div class="profile-avatar" id="profile-avatar">🌀</div>
+      <div class="profile-info">
+        <div class="profile-info-name" id="profile-name">Твой профиль</div>
+        <div class="profile-info-meta" id="profile-meta">—</div>
+      </div>
+      <span class="profile-edit">→</span>
+    </div>
+
+    <div class="section-head">
+      <div class="section-title">Последние сканы</div>
+      <a href="#" class="section-link" onclick="App.go('catalog'); return false">Все</a>
+    </div>
+    <div class="recent-list" id="recent-list">
+      <div class="empty">
+        <div class="empty-emoji">✨</div>
+        <div class="empty-text">Тут появятся твои анализы</div>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <div class="section-title">Совет дня</div>
+    </div>
+    <div class="tip-card">
+      <div class="tip-card-eyebrow">Хитрость КГМ</div>
+      <div class="tip-card-text">Высокопористые волосы любят утяжеление — масла и баттеры запечатывают влагу.</div>
+    </div>
+  </section>
+
+  <!-- ── СКАНЕР ── -->
+  <section class="screen" id="screen-scan">
+    <div class="greeting">
+      <div class="greeting-eyebrow">Шаг 1</div>
+      <h1 class="greeting-title">Загрузи <em>состав</em></h1>
+    </div>
+
+    <div class="scan-modes">
+      <div class="scan-mode active" data-mode="photo" onclick="Scanner.setMode('photo')">📸 Фото</div>
+      <div class="scan-mode" data-mode="text" onclick="Scanner.setMode('text')">✏️ Текст</div>
+    </div>
+
+    <div id="scan-photo-mode">
+      <label class="upload-zone" id="upload-zone">
+        <input type="file" accept="image/*" capture="environment" style="display:none" id="file-input" onchange="Scanner.handleFile(event)">
+        <div class="upload-zone-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </div>
+        <div class="upload-zone-title">Сфотографируй INCI</div>
+        <div class="upload-zone-sub">Состав на обороте упаковки</div>
+      </label>
+    </div>
+
+    <div id="scan-text-mode" style="display:none">
+      <textarea class="text-input-area" id="text-input" placeholder="Aqua, Sodium Laureth Sulfate, Cocamidopropyl Betaine, Glycerin..."></textarea>
+      <button class="btn btn-primary btn-block" onclick="Scanner.analyzeText()">Проанализировать</button>
+    </div>
+
+    <div id="scan-result"></div>
+  </section>
+
+  <!-- ── КАТАЛОГ ── -->
+  <section class="screen" id="screen-catalog">
+    <div class="greeting">
+      <div class="greeting-eyebrow">История</div>
+      <h1 class="greeting-title">Твоя <em>косметичка</em></h1>
+    </div>
+
+    <div class="catalog-tabs">
+      <div class="catalog-tab active">Все</div>
+      <div class="catalog-tab">Подходят</div>
+      <div class="catalog-tab">Хочу купить</div>
+      <div class="catalog-tab">Не подошло</div>
+    </div>
+
+    <div id="catalog-list">
+      <div class="empty">
+        <div class="empty-emoji">📦</div>
+        <div class="empty-text">Полки пусты — отсканируй первое средство</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── ПРОФИЛЬ ── -->
+  <section class="screen" id="screen-profile">
+    <div class="greeting">
+      <div class="greeting-eyebrow">Профиль</div>
+      <h1 class="greeting-title">Твои <em>волосы</em></h1>
+    </div>
+
+    <div class="profile-card">
+      <div class="profile-card-head">Тип кудрей</div>
+      <div class="profile-row">
+        <span class="profile-row-label">Кудрявость</span>
+        <span class="profile-row-value" id="pf-curl">—</span>
+      </div>
+      <div class="profile-row">
+        <span class="profile-row-label">Пористость</span>
+        <span class="profile-row-value" id="pf-porosity">—</span>
+      </div>
+      <div class="profile-row">
+        <span class="profile-row-label">Толщина</span>
+        <span class="profile-row-value" id="pf-thickness">—</span>
+      </div>
+    </div>
+
+    <div class="profile-card">
+      <div class="profile-card-head">Кожа головы</div>
+      <div class="profile-row">
+        <span class="profile-row-label">Тип</span>
+        <span class="profile-row-value" id="pf-scalp">—</span>
+      </div>
+    </div>
+
+    <div class="profile-card">
+      <div class="profile-card-head">Окрашивание</div>
+      <div class="profile-row">
+        <span class="profile-row-label">Состояние</span>
+        <span class="profile-row-value" id="pf-color">—</span>
+      </div>
+    </div>
+
+    <div class="profile-card">
+      <div class="profile-card-head">Цели ухода</div>
+      <div class="profile-row">
+        <span class="profile-row-label">Приоритеты</span>
+        <span class="profile-row-value" id="pf-goals">—</span>
+      </div>
+    </div>
+
+    <button class="btn btn-ghost btn-block" onclick="Onboarding.start(true)">Изменить профиль</button>
+
+    <div style="height: 16px"></div>
+
+    <button class="btn btn-primary btn-block" id="profile-admin-btn" onclick="App.go('admin')" style="display:none">
+      ⚙️ Админ-панель
+    </button>
+
+    <div style="height: 16px"></div>
+
+    <button class="btn btn-ghost btn-block" onclick="Auth.logout()" style="color:var(--ink-mute)">Выйти</button>
+  </section>
+
+  <!-- ── АДМИН-ПАНЕЛЬ (только для админа) ── -->
+  <section class="screen" id="screen-admin">
+    <div class="greeting">
+      <div class="greeting-eyebrow">⚙️ Админ-панель</div>
+      <h1 class="greeting-title">Управление <em>системой</em></h1>
+    </div>
+
+    <div class="profile-card">
+      <div class="profile-card-head">🔑 Ключ Gemini API</div>
+      <div style="font-size:12px; color:var(--ink-mute); margin-bottom:12px; line-height:1.5">
+        Этот ключ используется для всех запросов всех пользователей. Получить новый: <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--rose-400)">aistudio.google.com/apikey</a>
+      </div>
+      <input type="text" class="auth-input" id="admin-gemini-key" placeholder="AIzaSy...">
+      <div style="display:flex; gap:8px; margin-top:8px">
+        <button class="btn btn-primary" style="flex:1" onclick="Admin.saveKey()">Сохранить</button>
+        <button class="btn btn-ghost" onclick="Admin.testKey()">Проверить</button>
+      </div>
+      <div id="admin-key-status" style="font-size:12px; margin-top:10px; color:var(--ink-mute)"></div>
+    </div>
+
+    <div class="profile-card">
+      <div class="profile-card-head">🤖 AI-агенты</div>
+      <div class="profile-row">
+        <span class="profile-row-label">OCR-агент</span>
+        <span class="profile-row-value">Gemini 2.5 Flash</span>
+      </div>
+      <div class="profile-row">
+        <span class="profile-row-label">Аналитик INCI</span>
+        <span class="profile-row-value">Gemini 2.5 Flash</span>
+      </div>
+      <div class="profile-row">
+        <span class="profile-row-label">Доп. провайдеры</span>
+        <span class="profile-row-value" style="color:var(--ink-mute)">Блок 2</span>
+      </div>
+    </div>
+
+    <div class="profile-card">
+      <div class="profile-card-head">📊 Статистика</div>
+      <div class="profile-row">
+        <span class="profile-row-label">Всего сканов (этот браузер)</span>
+        <span class="profile-row-value" id="admin-stat-scans">—</span>
+      </div>
+      <div class="profile-row">
+        <span class="profile-row-label">Сохранено в полки</span>
+        <span class="profile-row-value" id="admin-stat-saved">—</span>
+      </div>
+    </div>
+
+    <div class="profile-card">
+      <div class="profile-card-head">⚠️ Опасная зона</div>
+      <button class="btn btn-ghost btn-block" onclick="Admin.clearAllData()" style="color:var(--danger)">Очистить все данные</button>
+    </div>
+  </section>
+
+  <!-- ── НАВИГАЦИЯ ── -->
+  <nav class="tabbar">
+    <div class="tabbar-inner">
+      <button class="tab active" data-screen="home" onclick="App.go('home')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        Главная
+      </button>
+      <button class="tab" data-screen="scan" onclick="App.go('scan')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        Сканер
+      </button>
+      <button class="tab" data-screen="catalog" onclick="App.go('catalog')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        Каталог
+      </button>
+      <button class="tab" data-screen="profile" onclick="App.go('profile')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Профиль
+      </button>
+    </div>
+  </nav>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   CURLLY · v2.0 · Frontend Logic
+   Блок 1: Каркас, навигация, онбординг, базовый сканер
+   ═══════════════════════════════════════════════════════ */
+
+// ────────── СОСТОЯНИЕ ──────────
+const Storage = {
+  get(k, fallback = null) {
+    try { return JSON.parse(localStorage.getItem('curlly:' + k)) ?? fallback; }
+    catch { return fallback; }
+  },
+  set(k, v) { localStorage.setItem('curlly:' + k, JSON.stringify(v)); },
+  del(k) { localStorage.removeItem('curlly:' + k); }
+};
+
+// Дефолтный админский ключ Gemini (зашит на этапе разработки).
+// Перезаписывается, если админ сохранил свой через админ-панель.
+// Ключ удалён из кода. Запросы к Gemini будут проходить через серверный прокси
+// (/api/analyze на api.elenadortman.store). См. docs/technical/ai-router.md (будет создан).
+const DEFAULT_GEMINI_KEY = '';
+
+// Получить активный ключ Gemini для запросов
+function getGeminiKey() {
+  // Приоритет: 1) ключ, сохранённый админом 2) дефолтный 3) персональный (legacy)
+  return Storage.get('adminApiKey') || DEFAULT_GEMINI_KEY || Storage.get('apiKey');
+}
+
+// ────────── ОНБОРДИНГ ──────────
+const Onboarding = {
+  steps: [
+    {
+      key: 'curlType',
+      eyebrow: 'Шаг 1 из 5',
+      title: 'Какие у тебя <em>кудри</em>?',
+      sub: 'По типологии Андре Уокера — самой популярной в КГМ',
+      type: 'single',
+      options: [
+        { id: '2A', emoji: '〰️', title: 'Тип 2A — лёгкие волны', desc: 'Прямые у корней, волнистые на длине' },
+        { id: '2B', emoji: '🌊', title: 'Тип 2B — выраженные волны', desc: 'S-образные, средняя плотность' },
+        { id: '2C', emoji: '💫', title: 'Тип 2C — волны с локонами', desc: 'Иногда вьются в спирали' },
+        { id: '3A', emoji: '🌀', title: 'Тип 3A — крупные локоны', desc: 'Рыхлые спирали диаметром с маркер' },
+        { id: '3B', emoji: '🎀', title: 'Тип 3B — упругие локоны', desc: 'Плотные пружины' },
+        { id: '3C', emoji: '🌪', title: 'Тип 3C — кудряшки', desc: 'Мелкие тугие спирали' },
+        { id: '4',  emoji: '⚡', title: 'Тип 4 — афро', desc: 'Зигзаги или мельчайшие спирали' }
+      ]
+    },
+    {
+      key: 'porosity',
+      eyebrow: 'Шаг 2 из 5',
+      title: 'Какая у волос <em>пористость</em>?',
+      sub: 'Тест: брось чистый волос в стакан воды. Утонул быстро — высокая, плавает — низкая',
+      type: 'single',
+      options: [
+        { id: 'low',    emoji: '💧', title: 'Низкая', desc: 'Волос не впитывает воду, средства лежат сверху' },
+        { id: 'medium', emoji: '💎', title: 'Средняя', desc: 'Волос принимает влагу и держит её' },
+        { id: 'high',   emoji: '🌊', title: 'Высокая', desc: 'Быстро впитывает и быстро теряет воду' },
+        { id: 'unknown', emoji: '🤷', title: 'Не знаю', desc: 'Определим вместе позже' }
+      ]
+    },
+    {
+      key: 'thickness',
+      eyebrow: 'Шаг 3 из 5',
+      title: 'Какая <em>толщина</em> волоса?',
+      sub: 'Возьми один волос между пальцами — еле чувствуется или ощущается?',
+      type: 'single',
+      options: [
+        { id: 'thin',   emoji: '🪶', title: 'Тонкий', desc: 'Волос легко рвётся, быстро жирнится' },
+        { id: 'medium', emoji: '🎋', title: 'Средний', desc: 'Самый частый тип' },
+        { id: 'thick',  emoji: '🪢', title: 'Толстый', desc: 'Жёсткий, упругий, требует увлажнения' }
+      ]
+    },
+    {
+      key: 'scalp',
+      eyebrow: 'Шаг 4 из 5',
+      title: 'А <em>кожа головы</em>?',
+      sub: 'Это влияет на выбор шампуня и частоту мытья',
+      type: 'single',
+      options: [
+        { id: 'oily',      emoji: '💦', title: 'Жирная', desc: 'Корни жирнятся уже на 2 день' },
+        { id: 'normal',    emoji: '🌿', title: 'Нормальная', desc: 'Голова свежая 3–4 дня' },
+        { id: 'dry',       emoji: '🍂', title: 'Сухая', desc: 'Стянутость, шелушения' },
+        { id: 'sensitive', emoji: '🌸', title: 'Чувствительная', desc: 'Реагирует на ингредиенты' },
+        { id: 'mixed',     emoji: '🌗', title: 'Смешанная', desc: 'Жирные корни + сухая длина' }
+      ]
+    },
+    {
+      key: 'goals',
+      eyebrow: 'Шаг 5 из 5',
+      title: 'Твои <em>цели</em> в уходе',
+      sub: 'Можно выбрать несколько — анализ будет учитывать приоритеты',
+      type: 'multi',
+      options: [
+        { id: 'hydration', title: '💧 Увлажнение' },
+        { id: 'nutrition', title: '🥥 Питание' },
+        { id: 'growth',    title: '🌱 Рост' },
+        { id: 'volume',    title: '🎈 Объём' },
+        { id: 'definition',title: '🌀 Дефиниция' },
+        { id: 'frizz',     title: '🌬 Антипушение' },
+        { id: 'shine',     title: '✨ Блеск' },
+        { id: 'repair',    title: '🩹 Восстановление' },
+        { id: 'color',     title: '🎨 Защита цвета' },
+        { id: 'scalp',     title: '🌿 Здоровье кожи' }
+      ]
+    }
+  ],
+
+  state: { current: 0, answers: {} },
+
+  start(reset = false) {
+    if (reset) Storage.del('profile');
+    this.state = { current: 0, answers: Storage.get('profile', {}) };
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('onboarding-screen').classList.add('active');
+    this.render();
+  },
+
+  render() {
+    const step = this.steps[this.state.current];
+    const total = this.steps.length;
+
+    // Прогресс
+    document.getElementById('onb-progress').innerHTML = this.steps.map((_, i) => {
+      let cls = '';
+      if (i < this.state.current) cls = 'done';
+      else if (i === this.state.current) cls = 'current';
+      return `<div class="onb-progress-bar ${cls}"></div>`;
+    }).join('');
+
+    // Контент
+    let content = `
+      <div class="onb-step">
+        <div class="onb-eyebrow">${step.eyebrow}</div>
+        <h2 class="onb-title">${step.title}</h2>
+        <p class="onb-sub">${step.sub}</p>
+    `;
+
+    if (step.type === 'single') {
+      content += '<div class="onb-options">';
+      const selected = this.state.answers[step.key];
+      step.options.forEach(opt => {
+        const sel = selected === opt.id ? 'selected' : '';
+        content += `
+          <button class="onb-option ${sel}" onclick="Onboarding.selectSingle('${step.key}', '${opt.id}')">
+            <div class="onb-option-emoji">${opt.emoji}</div>
+            <div class="onb-option-content">
+              <div class="onb-option-title">${opt.title}</div>
+              <div class="onb-option-desc">${opt.desc}</div>
+            </div>
+          </button>
+        `;
+      });
+      content += '</div>';
+    } else if (step.type === 'multi') {
+      const selected = this.state.answers[step.key] || [];
+      content += '<div class="onb-multi-grid">';
+      step.options.forEach(opt => {
+        const sel = selected.includes(opt.id) ? 'selected' : '';
+        content += `
+          <button class="onb-chip ${sel}" onclick="Onboarding.toggleMulti('${step.key}', '${opt.id}')">${opt.title}</button>
+        `;
+      });
+      content += '</div>';
+    }
+
+    content += '</div>';
+    document.getElementById('onb-content').innerHTML = content;
+
+    // Кнопки
+    document.getElementById('onb-back').style.display = this.state.current === 0 ? 'none' : 'inline-flex';
+    const nextBtn = document.getElementById('onb-next');
+    nextBtn.textContent = this.state.current === total - 1 ? 'Готово ✨' : 'Дальше';
+    nextBtn.disabled = !this.isStepValid();
+  },
+
+  isStepValid() {
+    const step = this.steps[this.state.current];
+    const ans = this.state.answers[step.key];
+    if (step.type === 'single') return !!ans;
+    if (step.type === 'multi') return Array.isArray(ans) && ans.length > 0;
+    return true;
+  },
+
+  selectSingle(key, value) {
+    this.state.answers[key] = value;
+    this.render();
+  },
+
+  toggleMulti(key, value) {
+    if (!this.state.answers[key]) this.state.answers[key] = [];
+    const arr = this.state.answers[key];
+    const i = arr.indexOf(value);
+    if (i >= 0) arr.splice(i, 1); else arr.push(value);
+    this.render();
+  },
+
+  next() {
+    if (!this.isStepValid()) return;
+    if (this.state.current < this.steps.length - 1) {
+      this.state.current++;
+      this.render();
+    } else {
+      this.finish();
+    }
+  },
+
+  back() {
+    if (this.state.current > 0) {
+      this.state.current--;
+      this.render();
+    }
+  },
+
+  finish() {
+    Storage.set('profile', this.state.answers);
+    document.getElementById('onboarding-screen').classList.remove('active');
+    document.getElementById('app').style.display = 'block';
+    App.refreshProfile();
+    App.toast('Профиль сохранён ✨');
+    App.go('home');
+  }
+};
+
+// ────────── АВТОРИЗАЦИЯ ──────────
+const Auth = {
+  // ID администратора (Telegram)
+  ADMIN_TG_ID: 845707896,
+
+  platform: null, // 'tg' | 'vk' | 'web'
+
+  detectPlatform() {
+    // Telegram WebApp присутствует и есть данные пользователя
+    const tg = window.Telegram?.WebApp;
+    if (tg && tg.initDataUnsafe?.user?.id) return 'tg';
+
+    // VK Bridge присутствует (приложение запущено внутри VK)
+    if (window.vkBridge && /vk\.com|vk\.me|vkontakte/.test(document.referrer)) return 'vk';
+    if (window.vkBridge && new URLSearchParams(location.search).get('vk_user_id')) return 'vk';
+
+    return 'web';
+  },
+
+  async renderEntry() {
+    this.platform = this.detectPlatform();
+    const card = document.getElementById('auth-card');
+
+    if (this.platform === 'tg') {
+      const u = window.Telegram.WebApp.initDataUnsafe.user;
+      const name = u.first_name || 'друг';
+      card.innerHTML = `
+        <div class="auth-platform-icon tg">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/></svg>
+        </div>
+        <div class="auth-greeting">Привет, <em>${name}</em>!</div>
+        <div class="auth-greeting-sub">Войти через свой Telegram</div>
+        <button class="auth-tg-btn" onclick="Auth.loginTelegram()">Продолжить</button>
+      `;
+    } else if (this.platform === 'vk') {
+      card.innerHTML = `
+        <div class="auth-platform-icon vk">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.547 7.06h-2.937c-.22 0-.39.06-.5.292 0 0-1.07 2.61-2.59 4.31-.49.49-.71.65-.98.65-.13 0-.33-.16-.33-.55V7.06c0-.46-.13-.67-.51-.67h-4.61c-.28 0-.45.21-.45.41 0 .44.66.54.73 1.78v2.69c0 .58-.11.69-.34.69-.62 0-2.36-2.61-3.39-5.6-.21-.51-.41-.71-.87-.71H2.83c-.43 0-.51.21-.51.43 0 .48.62 3.27 3.25 6.95 1.75 2.51 4.21 3.88 6.46 3.88 1.34 0 1.51-.3 1.51-.81v-1.87c0-.6.13-.72.55-.72.31 0 .84.16 2.09 1.36 1.43 1.43 1.66 2.07 2.46 2.07h2.94c.42 0 .63-.21.51-.62-.13-.41-.71-1.01-1.49-1.71-.42-.5-1.05-1.04-1.24-1.31-.27-.34-.19-.49 0-.81 0 0 2.18-3.07 2.4-4.11.11-.38 0-.65-.55-.65z"/></svg>
+        </div>
+        <div class="auth-greeting">Через <em>VK</em></div>
+        <div class="auth-greeting-sub">Получим твои данные из VK</div>
+        <button class="auth-vk-btn" onclick="Auth.loginVK()">Продолжить</button>
+      `;
+    } else {
+      // Веб-версия — приглашение открыть в TG/VK + кнопка гостя
+      card.innerHTML = `
+        <div class="auth-platform-icon web">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        </div>
+        <div class="auth-greeting"><em>КУДРИ</em> — открыто в браузере</div>
+        <div class="auth-greeting-sub">Лучше всего работает как мини-приложение Telegram или VK</div>
+        <button class="btn btn-primary btn-block" onclick="Auth.loginGuest()">Продолжить как гость</button>
+        <div class="auth-hint">
+          В мобильном приложении Telegram открой бота КУДРИ — попадёшь в полноценный мини-апп с сохранением профиля
+        </div>
+      `;
+    }
+  },
+
+  loginTelegram() {
+    const tg = window.Telegram?.WebApp;
+    if (!tg || !tg.initDataUnsafe?.user) {
+      App.toast('Не удалось получить данные Telegram');
+      return;
+    }
+    const u = tg.initDataUnsafe.user;
+    const isAdmin = u.id === this.ADMIN_TG_ID;
+    Storage.set('user', {
+      type: 'telegram',
+      id: 'tg_' + u.id,
+      tgId: u.id,
+      name: [u.first_name, u.last_name].filter(Boolean).join(' '),
+      username: u.username,
+      photoUrl: u.photo_url,
+      isAdmin
+    });
+    if (isAdmin) App.toast('Вход администратора ✨');
+    this.afterLogin();
+  },
+
+  async loginVK() {
+    if (!window.vkBridge) return App.toast('VK Bridge не загружен');
+    try {
+      await window.vkBridge.send('VKWebAppInit');
+      const userInfo = await window.vkBridge.send('VKWebAppGetUserInfo');
+      Storage.set('user', {
+        type: 'vk',
+        id: 'vk_' + userInfo.id,
+        vkId: userInfo.id,
+        name: [userInfo.first_name, userInfo.last_name].filter(Boolean).join(' '),
+        photoUrl: userInfo.photo_100,
+        isAdmin: false // VK-админ можно добавить позже
+      });
+      this.afterLogin();
+    } catch (e) {
+      App.toast('Не удалось войти через VK');
+    }
+  },
+
+  loginGuest() {
+    const existing = Storage.get('guestId');
+    const id = existing || ('guest_' + Date.now());
+    if (!existing) Storage.set('guestId', id);
+    Storage.set('user', { type: 'guest', id, name: 'Гость' });
+    this.afterLogin();
+  },
+
+  afterLogin() {
+    document.getElementById('auth-screen').classList.remove('active');
+    if (Storage.get('profile')) {
+      document.getElementById('app').style.display = 'block';
+      App.refreshProfile();
+      App.refreshRecent();
+      App.go('home');
+    } else {
+      Onboarding.start();
+    }
+  },
+
+  logout() {
+    Storage.del('user');
+    Storage.del('profile');
+    location.reload();
+  },
+
+  isAdmin() {
+    const u = Storage.get('user');
+    return u && u.isAdmin === true;
+  }
+};
+
+// ────────── СКАНЕР (базовый — Gemini) ──────────
+const Scanner = {
+  mode: 'photo',
+  currentImage: null,
+
+  setMode(m) {
+    this.mode = m;
+    document.querySelectorAll('.scan-mode').forEach(el => {
+      el.classList.toggle('active', el.dataset.mode === m);
+    });
+    document.getElementById('scan-photo-mode').style.display = m === 'photo' ? 'block' : 'none';
+    document.getElementById('scan-text-mode').style.display = m === 'text' ? 'block' : 'none';
+  },
+
+  async handleFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async () => {
+      this.currentImage = reader.result;
+      document.getElementById('scan-result').innerHTML = `
+        <img src="${reader.result}" class="preview-img" alt="Состав">
+      `;
+      await this.analyze({ type: 'image', data: reader.result });
+    };
+    reader.readAsDataURL(file);
+  },
+
+  async analyzeText() {
+    const text = document.getElementById('text-input').value.trim();
+    if (!text) return App.toast('Вставь состав');
+    await this.analyze({ type: 'text', data: text });
+  },
+
+  async analyze(input) {
+    const apiKey = getGeminiKey();
+    if (!apiKey) {
+      App.toast('API ключ не настроен');
+      return;
+    }
+
+    const profile = Storage.get('profile') || {};
+    const result = document.getElementById('scan-result');
+
+    // Прелоадер
+    result.insertAdjacentHTML('beforeend', `
+      <div class="analysis-loading" id="loader">
+        <div class="spinner"></div>
+        <div class="analysis-loading-text">Изучаю состав…</div>
+      </div>
+    `);
+
+    try {
+      const data = await this.callGemini(apiKey, input, profile);
+      document.getElementById('loader')?.remove();
+      this.renderResult(data, input);
+      this.saveToHistory(data, input);
+    } catch (err) {
+      document.getElementById('loader')?.remove();
+      result.insertAdjacentHTML('beforeend', `
+        <div class="verdict-card bad">
+          <div class="verdict-head">
+            <div class="verdict-icon">⚠️</div>
+            <div>
+              <div class="verdict-status">Ошибка</div>
+              <div class="verdict-meta">${err.message}</div>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+  },
+
+  buildPrompt(profile) {
+    const p = profile;
+    const goalsTxt = (p.goals || []).map(g => ({
+      hydration:'увлажнение', nutrition:'питание', growth:'рост',
+      volume:'объём', definition:'дефиниция', frizz:'антипушение',
+      shine:'блеск', repair:'восстановление', color:'защита цвета', scalp:'кожа головы'
+    }[g])).join(', ');
+
+    return `Ты эксперт по КГМ (кудрявому методу) и анализу косметических составов INCI.
+
+ПРОФИЛЬ ВОЛОС:
+- Тип кудрей: ${p.curlType || '—'}
+- Пористость: ${p.porosity || '—'}
+- Толщина: ${p.thickness || '—'}
+- Кожа головы: ${p.scalp || '—'}
+- Цели: ${goalsTxt || '—'}
+
+ЗАДАЧА:
+1. Прочитай INCI-состав (с фото или текста)
+2. Определи тип средства (шампунь, кондиционер, маска, гель, несмывашка...)
+3. Оцени по принципам КГМ для ИМЕННО этого профиля
+4. Верни СТРОГО JSON в таком формате (без markdown, без \`\`\`):
+
+{
+  "verdict": "good" | "warn" | "bad",
+  "verdictTitle": "Подходит" | "С оговорками" | "Не подходит",
+  "productType": "тип средства",
+  "summary": "1-2 предложения почему",
+  "ingredients": [
+    {"name": "название ингредиента", "status": "good"|"warn"|"bad", "note": "роль и почему такая оценка для ЭТОГО профиля"}
+  ]
+}
+
+Анализируй ТОЛЬКО ключевые ингредиенты (5-10 самых важных). Будь конкретна с учётом профиля. Если силикон — для каких пористостей это норм а для каких нет. Если сульфат — стоит ли его этому типу головы.`;
+  },
+
+  async callGemini(apiKey, input, profile) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const parts = [{ text: this.buildPrompt(profile) }];
+
+    if (input.type === 'image') {
+      const base64 = input.data.split(',')[1];
+      const mime = input.data.match(/data:(.*?);/)[1];
+      parts.push({ inline_data: { mime_type: mime, data: base64 } });
+    } else {
+      parts.push({ text: 'СОСТАВ:\n' + input.data });
+    }
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts }],
+        generationConfig: { temperature: 0.2, maxOutputTokens: 2048, responseMimeType: 'application/json' }
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Gemini ${res.status}: ${err.slice(0, 200)}`);
+    }
+
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) throw new Error('Пустой ответ от Gemini');
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      throw new Error('Не удалось распарсить ответ');
+    }
+  },
+
+  renderResult(data, input) {
+    const result = document.getElementById('scan-result');
+    const cls = data.verdict;
+    const icon = { good: '✓', warn: '!', bad: '✗' }[cls];
+
+    let html = `
+      <div class="verdict-card ${cls}">
+        <div class="verdict-head">
+          <div class="verdict-icon">${icon}</div>
+          <div>
+            <div class="verdict-status">${data.verdictTitle.replace(/^(\S+)/, '<em>$1</em>')}</div>
+            <div class="verdict-meta">${data.productType || ''}</div>
+          </div>
+        </div>
+        <div class="verdict-summary">${data.summary || ''}</div>
+
+        <div class="ingredient-list">
+          ${(data.ingredients || []).map(ing => `
+            <div class="ingredient-item">
+              <div class="ingredient-dot ${ing.status}"></div>
+              <div class="ingredient-content">
+                <div class="ingredient-name">${ing.name}</div>
+                <div class="ingredient-note">${ing.note || ''}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+
+        <div class="action-row">
+          <button class="action-btn" onclick="Scanner.saveTo('mine')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>
+            В мои
+          </button>
+          <button class="action-btn" onclick="Scanner.saveTo('wishlist')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            Хочу купить
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('scan-result').insertAdjacentHTML('beforeend', html);
+  },
+
+  saveToHistory(data, input) {
+    const history = Storage.get('history', []);
+    history.unshift({
+      id: Date.now(),
+      date: new Date().toISOString(),
+      verdict: data.verdict,
+      productType: data.productType,
+      summary: data.summary,
+      ingredients: data.ingredients,
+      shelf: 'history'
+    });
+    Storage.set('history', history.slice(0, 100));
+    App.refreshRecent();
+  },
+
+  saveTo(shelf) {
+    const history = Storage.get('history', []);
+    if (history[0]) {
+      history[0].shelf = shelf;
+      Storage.set('history', history);
+      App.toast(shelf === 'mine' ? 'Сохранено в "Мои средства"' : 'Добавлено в "Хочу купить"');
+    }
+  }
+};
+
+// ────────── АДМИН-ПАНЕЛЬ ──────────
+const Admin = {
+  // Маскирует ключ для отображения: AIzaSy***0xAg
+  mask(key) {
+    if (!key || key.length < 10) return '';
+    return key.slice(0, 6) + '***' + key.slice(-4);
+  },
+
+  loadCurrentKey() {
+    const input = document.getElementById('admin-gemini-key');
+    const status = document.getElementById('admin-key-status');
+    const saved = Storage.get('adminApiKey');
+    const active = saved || DEFAULT_GEMINI_KEY;
+
+    input.value = active || '';
+    if (saved) {
+      status.textContent = `Сохранён твой ключ: ${this.mask(saved)}`;
+      status.style.color = 'var(--green)';
+    } else if (DEFAULT_GEMINI_KEY) {
+      status.textContent = `Используется встроенный ключ: ${this.mask(DEFAULT_GEMINI_KEY)} (рекомендую сохранить свой)`;
+      status.style.color = 'var(--warning)';
+    } else {
+      status.textContent = 'Ключ не задан';
+      status.style.color = 'var(--danger)';
+    }
+
+    // Статистика
+    const history = Storage.get('history', []);
+    document.getElementById('admin-stat-scans').textContent = history.length;
+    const saved_count = history.filter(h => h.shelf && h.shelf !== 'history').length;
+    document.getElementById('admin-stat-saved').textContent = saved_count;
+  },
+
+  saveKey() {
+    const key = document.getElementById('admin-gemini-key').value.trim();
+    if (!key) {
+      Storage.del('adminApiKey');
+      App.toast('Ключ удалён, активен встроенный');
+    } else if (!key.startsWith('AIza')) {
+      App.toast('Ключ должен начинаться с AIza...');
+      return;
+    } else {
+      Storage.set('adminApiKey', key);
+      App.toast('Ключ сохранён ✓');
+    }
+    this.loadCurrentKey();
+  },
+
+  async testKey() {
+    const key = document.getElementById('admin-gemini-key').value.trim() || DEFAULT_GEMINI_KEY;
+    const status = document.getElementById('admin-key-status');
+    if (!key) return App.toast('Нет ключа для проверки');
+
+    status.textContent = 'Проверяю…';
+    status.style.color = 'var(--ink-mute)';
+
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: 'Ответь одним словом: ок' }] }],
+          generationConfig: { maxOutputTokens: 10 }
+        })
+      });
+      if (res.ok) {
+        status.textContent = '✓ Ключ работает';
+        status.style.color = 'var(--green)';
+      } else {
+        const err = await res.text();
+        status.textContent = `✗ Ошибка ${res.status}: ${err.slice(0, 100)}`;
+        status.style.color = 'var(--danger)';
+      }
+    } catch (e) {
+      status.textContent = '✗ Сетевая ошибка: ' + e.message;
+      status.style.color = 'var(--danger)';
+    }
+  },
+
+  clearAllData() {
+    if (!confirm('Очистить ВСЕ данные приложения? (профиль, история, настройки, ключ админа)')) return;
+    Object.keys(localStorage).filter(k => k.startsWith('curlly:')).forEach(k => localStorage.removeItem(k));
+    App.toast('Всё очищено');
+    setTimeout(() => location.reload(), 500);
+  }
+};
+
+// ────────── ОСНОВНОЕ ПРИЛОЖЕНИЕ ──────────
+const App = {
+  auth: Auth,
+
+  init() {
+    // Telegram WebApp
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+    }
+
+    // Приветствие по времени
+    const h = new Date().getHours();
+    const eyebrow = h < 12 ? 'Доброе утро' : h < 18 ? 'Добрый день' : 'Добрый вечер';
+    document.querySelector('.greeting-eyebrow').textContent = eyebrow;
+
+    // Маршрутизация
+    if (!Storage.get('user')) {
+      Auth.renderEntry();
+      document.getElementById('auth-screen').classList.add('active');
+    } else if (!Storage.get('profile')) {
+      Onboarding.start();
+    } else {
+      document.getElementById('app').style.display = 'block';
+      this.refreshProfile();
+      this.refreshRecent();
+    }
+  },
+
+  go(screen) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + screen).classList.add('active');
+    document.querySelectorAll('.tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.screen === screen);
+    });
+    if (screen === 'scan') {
+      document.getElementById('scan-result').innerHTML = '';
+      Scanner.currentImage = null;
+    }
+    if (screen === 'profile') this.refreshProfileScreen();
+    if (screen === 'admin') Admin.loadCurrentKey();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  },
+
+  refreshProfile() {
+    const p = Storage.get('profile') || {};
+    const u = Storage.get('user') || {};
+
+    const curlMap = { '2A':'Волны 2A', '2B':'Волны 2B', '2C':'Волны 2C', '3A':'Локоны 3A', '3B':'Локоны 3B', '3C':'Кудри 3C', '4':'Афро' };
+    const porMap = { low:'низкая порист.', medium:'средняя порист.', high:'высокая порист.', unknown:'порист. ?' };
+    const thMap = { thin:'тонкие', medium:'средние', thick:'толстые' };
+
+    const meta = [curlMap[p.curlType], porMap[p.porosity], thMap[p.thickness]].filter(Boolean).join(' · ');
+    document.getElementById('profile-meta').textContent = meta || 'Заполни профиль';
+    document.getElementById('profile-name').textContent = u.name || 'Твой профиль';
+
+    const emojiMap = { '2A':'〰️','2B':'🌊','2C':'💫','3A':'🌀','3B':'🎀','3C':'🌪','4':'⚡' };
+    if (emojiMap[p.curlType]) document.getElementById('profile-avatar').textContent = emojiMap[p.curlType];
+
+    // Кнопка админ-панели в профиле
+    const adminBtn = document.getElementById('profile-admin-btn');
+    if (adminBtn) adminBtn.style.display = Auth.isAdmin() ? 'inline-flex' : 'none';
+
+    // Бейдж админа в шапке
+    this.renderAdminBadge();
+  },
+
+  renderAdminBadge() {
+    if (!Auth.isAdmin()) return;
+    const actions = document.querySelector('.topbar-actions');
+    if (actions && !document.getElementById('admin-quick-btn')) {
+      const btn = document.createElement('button');
+      btn.id = 'admin-quick-btn';
+      btn.className = 'topbar-btn';
+      btn.title = 'Админ-панель';
+      btn.style.background = 'var(--rose-200)';
+      btn.style.color = 'var(--terracotta)';
+      btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`;
+      btn.onclick = () => App.go('admin');
+      actions.insertBefore(btn, actions.firstChild);
+    }
+  },
+
+  refreshProfileScreen() {
+    const p = Storage.get('profile') || {};
+    const dict = {
+      curl: { '2A':'Волны 2A — лёгкие','2B':'Волны 2B','2C':'Волны 2C','3A':'Локоны 3A','3B':'Локоны 3B','3C':'Кудри 3C','4':'Афро' },
+      porosity: { low:'Низкая', medium:'Средняя', high:'Высокая', unknown:'Не определена' },
+      thickness: { thin:'Тонкие', medium:'Средние', thick:'Толстые' },
+      scalp: { oily:'Жирная', normal:'Нормальная', dry:'Сухая', sensitive:'Чувствительная', mixed:'Смешанная' }
+    };
+    document.getElementById('pf-curl').textContent = dict.curl[p.curlType] || '—';
+    document.getElementById('pf-porosity').textContent = dict.porosity[p.porosity] || '—';
+    document.getElementById('pf-thickness').textContent = dict.thickness[p.thickness] || '—';
+    document.getElementById('pf-scalp').textContent = dict.scalp[p.scalp] || '—';
+    document.getElementById('pf-color').textContent = p.color || 'Не указано';
+
+    const goalsMap = { hydration:'Увлажнение', nutrition:'Питание', growth:'Рост', volume:'Объём', definition:'Дефиниция', frizz:'Антипушение', shine:'Блеск', repair:'Восстановление', color:'Защита цвета', scalp:'Кожа головы' };
+    const goals = (p.goals || []).map(g => goalsMap[g]).join(', ');
+    document.getElementById('pf-goals').textContent = goals || '—';
+  },
+
+  refreshRecent() {
+    const history = Storage.get('history', []).slice(0, 3);
+    const list = document.getElementById('recent-list');
+    if (history.length === 0) {
+      list.innerHTML = `
+        <div class="empty">
+          <div class="empty-emoji">✨</div>
+          <div class="empty-text">Тут появятся твои анализы</div>
+        </div>`;
+      return;
+    }
+    list.innerHTML = history.map(h => {
+      const date = new Date(h.date);
+      const dStr = date.toLocaleDateString('ru', { day:'numeric', month:'short' });
+      const verdictMap = { good:'badge-good', warn:'badge-warn', bad:'badge-bad' };
+      const txtMap = { good:'Подходит', warn:'С оговорками', bad:'Нет' };
+      return `
+        <div class="recent-item">
+          <div class="recent-item-icon">🧴</div>
+          <div class="recent-item-content">
+            <div class="recent-item-name">${h.productType || 'Средство'}</div>
+            <div class="recent-item-date">${dStr}</div>
+          </div>
+          <span class="recent-item-badge ${verdictMap[h.verdict]}">${txtMap[h.verdict]}</span>
+        </div>
+      `;
+    }).join('');
+  },
+
+  toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(this._toastT);
+    this._toastT = setTimeout(() => t.classList.remove('show'), 2400);
+  }
+};
+
+// ────────── СТАРТ ──────────
+document.addEventListener('DOMContentLoaded', () => App.init());
+</script>
+</body>
+</html>
