@@ -1257,10 +1257,10 @@ input, select, textarea { font: inherit; color: inherit; }
     </div>
 
     <div class="catalog-tabs">
-      <div class="catalog-tab active">Все</div>
-      <div class="catalog-tab">Подходят</div>
-      <div class="catalog-tab">Хочу купить</div>
-      <div class="catalog-tab">Не подошло</div>
+      <div class="catalog-tab active" data-shelf="all">Все</div>
+      <div class="catalog-tab" data-shelf="mine">Подходят</div>
+      <div class="catalog-tab" data-shelf="wishlist">Хочу купить</div>
+      <div class="catalog-tab" data-shelf="rejected">Не подошло</div>
     </div>
 
     <div id="catalog-list">
@@ -1488,7 +1488,27 @@ const Api = {
 
   getMe() { return this.request('/api/me'); },
   getProfile() { return this.request('/api/profile'); },
-  putProfile(profile) { return this.request('/api/profile', { method: 'PUT', body: profile }); }
+  putProfile(profile) { return this.request('/api/profile', { method: 'PUT', body: profile }); },
+
+  // Анализ INCI через бэкенд-прокси к Gemini
+  analyze(content) {
+    return this.request('/api/analyze', { method: 'POST', body: { content } });
+  },
+
+  // CRUD для сканов
+  createScan(scanData) {
+    return this.request('/api/scans', { method: 'POST', body: scanData });
+  },
+  listScans(shelf = 'all', limit = 50) {
+    const q = new URLSearchParams({ shelf, limit: String(limit) }).toString();
+    return this.request(`/api/scans?${q}`);
+  },
+  updateScanShelf(id, shelf) {
+    return this.request(`/api/scans/${id}/shelf`, { method: 'PUT', body: { shelf } });
+  },
+  deleteScan(id) {
+    return this.request(`/api/scans/${id}`, { method: 'DELETE' });
+  }
 };
 
 // ────────── ОНБОРДИНГ ──────────
@@ -1897,6 +1917,7 @@ const Auth = {
 const Scanner = {
   mode: 'photo',
   currentImage: null,
+  lastScanId: null,
 
   setMode(m) {
     this.mode = m;
@@ -1910,27 +1931,21 @@ const Scanner = {
   async handleFile(e) {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async () => {
-      this.currentImage = reader.result;
-      document.getElementById('scan-result').innerHTML = `
-        <img src="${reader.result}" class="preview-img" alt="Состав">
-      `;
-      await this.analyze({ type: 'image', data: reader.result });
-    };
-    reader.readAsDataURL(file);
+    // Анализ по фото пока не поддерживается — запланирован отдельным ТЗ (S3 + vision).
+    App.toast('Анализ по фото скоро. Используй текстовый режим.');
+    e.target.value = ''; // сброс выбранного файла
   },
 
   async analyzeText() {
     const text = document.getElementById('text-input').value.trim();
     if (!text) return App.toast('Вставь состав');
+    document.getElementById('scan-result').innerHTML = '';
     await this.analyze({ type: 'text', data: text });
   },
 
   async analyze(input) {
-    const apiKey = getGeminiKey();
-    if (!apiKey) {
-      App.toast('API ключ не настроен');
+    if (!Api.canUseBackend()) {
+      App.toast('Сканер доступен только в Telegram');
       return;
     }
 
@@ -1946,96 +1961,38 @@ const Scanner = {
     `);
 
     try {
-      const data = await this.callGemini(apiKey, input, profile);
+      // 1. Анализ через AI (серверный прокси к Gemini)
+      const verdict = await Api.analyze(input);
+
+      // 2. Сохранение в БД со снимком профиля
+      const { scan } = await Api.createScan({
+        rawInci: input.type === 'text' ? input.data : null,
+        verdict: verdict.verdict,
+        verdictTitle: verdict.verdictTitle,
+        productType: verdict.productType,
+        summary: verdict.summary,
+        ingredients: verdict.ingredients,
+        profileSnapshot: profile
+      });
+
       document.getElementById('loader')?.remove();
-      this.renderResult(data, input);
-      this.saveToHistory(data, input);
+      this.lastScanId = scan.id; // для кнопок полок
+      this.renderResult(verdict, input);
+      App.refreshRecent();
     } catch (err) {
       document.getElementById('loader')?.remove();
+      const msg = err.payload?.error || err.message || 'unknown';
       result.insertAdjacentHTML('beforeend', `
         <div class="verdict-card bad">
           <div class="verdict-head">
             <div class="verdict-icon">⚠️</div>
             <div>
               <div class="verdict-status">Ошибка</div>
-              <div class="verdict-meta">${err.message}</div>
+              <div class="verdict-meta">${msg}</div>
             </div>
           </div>
         </div>
       `);
-    }
-  },
-
-  buildPrompt(profile) {
-    const p = profile;
-    const goalsTxt = (p.goals || []).map(g => ({
-      hydration:'увлажнение', nutrition:'питание', growth:'рост',
-      volume:'объём', definition:'дефиниция', frizz:'антипушение',
-      shine:'блеск', repair:'восстановление', color:'защита цвета', scalp:'кожа головы'
-    }[g])).join(', ');
-
-    return `Ты эксперт по КГМ (кудрявому методу) и анализу косметических составов INCI.
-
-ПРОФИЛЬ ВОЛОС:
-- Тип кудрей: ${p.curlType || '—'}
-- Пористость: ${p.porosity || '—'}
-- Толщина: ${p.thickness || '—'}
-- Кожа головы: ${p.scalp || '—'}
-- Цели: ${goalsTxt || '—'}
-
-ЗАДАЧА:
-1. Прочитай INCI-состав (с фото или текста)
-2. Определи тип средства (шампунь, кондиционер, маска, гель, несмывашка...)
-3. Оцени по принципам КГМ для ИМЕННО этого профиля
-4. Верни СТРОГО JSON в таком формате (без markdown, без \`\`\`):
-
-{
-  "verdict": "good" | "warn" | "bad",
-  "verdictTitle": "Подходит" | "С оговорками" | "Не подходит",
-  "productType": "тип средства",
-  "summary": "1-2 предложения почему",
-  "ingredients": [
-    {"name": "название ингредиента", "status": "good"|"warn"|"bad", "note": "роль и почему такая оценка для ЭТОГО профиля"}
-  ]
-}
-
-Анализируй ТОЛЬКО ключевые ингредиенты (5-10 самых важных). Будь конкретна с учётом профиля. Если силикон — для каких пористостей это норм а для каких нет. Если сульфат — стоит ли его этому типу головы.`;
-  },
-
-  async callGemini(apiKey, input, profile) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-    const parts = [{ text: this.buildPrompt(profile) }];
-
-    if (input.type === 'image') {
-      const base64 = input.data.split(',')[1];
-      const mime = input.data.match(/data:(.*?);/)[1];
-      parts.push({ inline_data: { mime_type: mime, data: base64 } });
-    } else {
-      parts.push({ text: 'СОСТАВ:\n' + input.data });
-    }
-
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts }],
-        generationConfig: { temperature: 0.2, maxOutputTokens: 2048, responseMimeType: 'application/json' }
-      })
-    });
-
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(`Gemini ${res.status}: ${err.slice(0, 200)}`);
-    }
-
-    const data = await res.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) throw new Error('Пустой ответ от Gemini');
-
-    try {
-      return JSON.parse(text);
-    } catch {
-      throw new Error('Не удалось распарсить ответ');
     }
   },
 
@@ -2083,27 +2040,14 @@ const Scanner = {
     document.getElementById('scan-result').insertAdjacentHTML('beforeend', html);
   },
 
-  saveToHistory(data, input) {
-    const history = Storage.get('history', []);
-    history.unshift({
-      id: Date.now(),
-      date: new Date().toISOString(),
-      verdict: data.verdict,
-      productType: data.productType,
-      summary: data.summary,
-      ingredients: data.ingredients,
-      shelf: 'history'
-    });
-    Storage.set('history', history.slice(0, 100));
-    App.refreshRecent();
-  },
-
-  saveTo(shelf) {
-    const history = Storage.get('history', []);
-    if (history[0]) {
-      history[0].shelf = shelf;
-      Storage.set('history', history);
-      App.toast(shelf === 'mine' ? 'Сохранено в "Мои средства"' : 'Добавлено в "Хочу купить"');
+  async saveTo(shelf) {
+    if (!this.lastScanId) return App.toast('Скан не сохранён');
+    try {
+      await Api.updateScanShelf(this.lastScanId, shelf);
+      const labels = { mine: 'Мои средства', wishlist: 'Хочу купить', rejected: 'Не подошло' };
+      App.toast(`Сохранено в "${labels[shelf] || shelf}"`);
+    } catch (err) {
+      App.toast('Не удалось сохранить');
     }
   }
 };
@@ -2197,6 +2141,84 @@ const Admin = {
 };
 
 // ────────── ОСНОВНОЕ ПРИЛОЖЕНИЕ ──────────
+// ────────── КАТАЛОГ ──────────
+// Вкладки: все / мои / хочу / не подошло. Источник — GET /api/scans?shelf=...
+const Catalog = {
+  currentShelf: 'all',
+
+  async init() {
+    document.querySelectorAll('.catalog-tab').forEach(tab => {
+      tab.onclick = () => {
+        const shelf = tab.dataset.shelf || 'all';
+        this.switchTo(shelf);
+      };
+    });
+    await this.load(this.currentShelf);
+  },
+
+  async switchTo(shelf) {
+    this.currentShelf = shelf;
+    document.querySelectorAll('.catalog-tab').forEach(tab => {
+      tab.classList.toggle('active', (tab.dataset.shelf || 'all') === shelf);
+    });
+    await this.load(shelf);
+  },
+
+  async load(shelf) {
+    const list = document.getElementById('catalog-list');
+
+    if (!Api.canUseBackend()) {
+      list.innerHTML = `
+        <div class="empty">
+          <div class="empty-emoji">📦</div>
+          <div class="empty-text">Каталог доступен только в Telegram</div>
+        </div>`;
+      return;
+    }
+
+    list.innerHTML = `<div class="empty"><div class="empty-text">Загружаю…</div></div>`;
+
+    try {
+      const { scans } = await Api.listScans(shelf, 100);
+      if (!scans || scans.length === 0) {
+        const emptyTexts = {
+          all: 'Полки пусты — отсканируй первое средство',
+          mine: 'Здесь будут средства, которые тебе подошли',
+          wishlist: 'Здесь будет список покупок',
+          rejected: 'Здесь будут средства, которые не подошли',
+          history: 'История пуста'
+        };
+        list.innerHTML = `
+          <div class="empty">
+            <div class="empty-emoji">📦</div>
+            <div class="empty-text">${emptyTexts[shelf] || 'Пусто'}</div>
+          </div>`;
+        return;
+      }
+
+      list.innerHTML = scans.map(s => {
+        const date = new Date(s.createdAt);
+        const dStr = date.toLocaleDateString('ru', { day:'numeric', month:'short' });
+        const verdictMap = { good:'badge-good', warn:'badge-warn', bad:'badge-bad' };
+        const txtMap = { good:'Подходит', warn:'С оговорками', bad:'Нет' };
+        return `
+          <div class="recent-item">
+            <div class="recent-item-icon">🧴</div>
+            <div class="recent-item-content">
+              <div class="recent-item-name">${s.productType || 'Средство'}</div>
+              <div class="recent-item-date">${dStr} · ${s.shelf}</div>
+            </div>
+            <span class="recent-item-badge ${verdictMap[s.verdict]}">${txtMap[s.verdict]}</span>
+          </div>
+        `;
+      }).join('');
+    } catch (err) {
+      console.warn('[Catalog.load]', err);
+      list.innerHTML = `<div class="empty"><div class="empty-text">Не удалось загрузить</div></div>`;
+    }
+  }
+};
+
 const App = {
   auth: Auth,
 
@@ -2238,6 +2260,7 @@ const App = {
     }
     if (screen === 'profile') this.refreshProfileScreen();
     if (screen === 'admin') Admin.loadCurrentKey();
+    if (screen === 'catalog') Catalog.init();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   },
 
@@ -2299,33 +2322,46 @@ const App = {
     document.getElementById('pf-goals').textContent = goals || '—';
   },
 
-  refreshRecent() {
-    const history = Storage.get('history', []).slice(0, 3);
+  async refreshRecent() {
     const list = document.getElementById('recent-list');
-    if (history.length === 0) {
-      list.innerHTML = `
-        <div class="empty">
-          <div class="empty-emoji">✨</div>
-          <div class="empty-text">Тут появятся твои анализы</div>
-        </div>`;
+    const emptyHtml = `
+      <div class="empty">
+        <div class="empty-emoji">✨</div>
+        <div class="empty-text">Тут появятся твои анализы</div>
+      </div>`;
+
+    // Вне TG — нет бэка, нет истории (localStorage больше не источник)
+    if (!Api.canUseBackend()) {
+      list.innerHTML = emptyHtml;
       return;
     }
-    list.innerHTML = history.map(h => {
-      const date = new Date(h.date);
-      const dStr = date.toLocaleDateString('ru', { day:'numeric', month:'short' });
-      const verdictMap = { good:'badge-good', warn:'badge-warn', bad:'badge-bad' };
-      const txtMap = { good:'Подходит', warn:'С оговорками', bad:'Нет' };
-      return `
-        <div class="recent-item">
-          <div class="recent-item-icon">🧴</div>
-          <div class="recent-item-content">
-            <div class="recent-item-name">${h.productType || 'Средство'}</div>
-            <div class="recent-item-date">${dStr}</div>
+
+    try {
+      const { scans } = await Api.listScans('all', 3);
+      if (!scans || scans.length === 0) {
+        list.innerHTML = emptyHtml;
+        return;
+      }
+      list.innerHTML = scans.map(s => {
+        const date = new Date(s.createdAt);
+        const dStr = date.toLocaleDateString('ru', { day:'numeric', month:'short' });
+        const verdictMap = { good:'badge-good', warn:'badge-warn', bad:'badge-bad' };
+        const txtMap = { good:'Подходит', warn:'С оговорками', bad:'Нет' };
+        return `
+          <div class="recent-item">
+            <div class="recent-item-icon">🧴</div>
+            <div class="recent-item-content">
+              <div class="recent-item-name">${s.productType || 'Средство'}</div>
+              <div class="recent-item-date">${dStr}</div>
+            </div>
+            <span class="recent-item-badge ${verdictMap[s.verdict]}">${txtMap[s.verdict]}</span>
           </div>
-          <span class="recent-item-badge ${verdictMap[h.verdict]}">${txtMap[h.verdict]}</span>
-        </div>
-      `;
-    }).join('');
+        `;
+      }).join('');
+    } catch (err) {
+      console.warn('[refreshRecent] failed', err);
+      list.innerHTML = `<div class="empty"><div class="empty-text">Не удалось загрузить</div></div>`;
+    }
   },
 
   toast(msg) {
