@@ -25,6 +25,11 @@ const updateTgUser = db.prepare(`
   WHERE id = ?
 `);
 
+const selectById = db.prepare(
+  `SELECT id, platform, platform_id, username, first_name, last_name, photo_url, is_admin, created_at, last_seen_at
+   FROM users WHERE id = ?`
+);
+
 /**
  * Находит пользователя по tg-id или создаёт нового. Обновляет last_seen_at и профильные поля.
  * @param {object} tgUser — user-объект из initData, как пришёл от Telegram
@@ -58,4 +63,25 @@ function upsertTelegramUser(tgUser) {
   }
 }
 
-module.exports = { upsertTelegramUser };
+/**
+ * Находит пользователя по внутреннему id. Возвращает объект в camelCase
+ * с isAdmin как boolean, либо null если пользователя нет.
+ */
+function getUserById(id) {
+  const row = selectById.get(id);
+  if (!row) return null;
+  return {
+    id: row.id,
+    platform: row.platform,
+    platformId: row.platform_id,
+    username: row.username,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    photoUrl: row.photo_url,
+    isAdmin: row.is_admin === 1,
+    createdAt: row.created_at,
+    lastSeenAt: row.last_seen_at
+  };
+}
+
+module.exports = { upsertTelegramUser, getUserById };

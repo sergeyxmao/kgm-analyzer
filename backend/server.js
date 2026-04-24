@@ -169,6 +169,9 @@ app.delete('/api/scans/:id', requireTelegramAuth, (req, res) => {
   }
 });
 
+// Админ-роуты (CRUD для AI-агентов). Все эндпоинты требуют is_admin=1.
+app.use('/api/admin', require('./routes/admin'));
+
 // Все прочие пути — 404 JSON
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found', path: req.path });
