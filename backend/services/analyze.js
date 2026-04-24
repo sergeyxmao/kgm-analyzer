@@ -4,7 +4,24 @@
  */
 
 const gemini = require('./gemini');
+const openai = require('./openai');
 const { getProfileByUserId } = require('./profiles');
+
+// Gemini-ошибки, при которых имеет смысл переключиться на OpenAI:
+// квоты, rate-limit, сетевые сбои, overloaded. НЕ fallback'им на 400 (наша ошибка)
+// и не fallback'им, если сам ответ Gemini невалидный — проблема в промпте, а не в провайдере.
+function shouldFallback(err) {
+  const msg = err.message || '';
+  if (msg === 'gemini_key_missing') return true;
+  if (msg === 'gemini_timeout') return true;
+  if (msg.startsWith('gemini_network:')) return true;
+  if (msg === 'gemini_empty_response') return true;
+  if (msg.startsWith('gemini_http_')) {
+    const code = parseInt(msg.slice('gemini_http_'.length), 10);
+    return code === 429 || code === 403 || code >= 500;
+  }
+  return false;
+}
 
 const GOAL_LABELS = {
   hydration: 'увлажнение', nutrition: 'питание', growth: 'рост',
@@ -92,21 +109,37 @@ async function analyzeInci(userId, input) {
   const parts = buildParts(prompt, input);
 
   let text;
+  let provider = 'gemini';
   try {
     text = await gemini.generate(parts, { temperature: 0.2, maxOutputTokens: 2048 });
-  } catch (err) {
-    return { ok: false, error: err.message, detail: err.detail };
+  } catch (primaryErr) {
+    if (openai.isConfigured() && shouldFallback(primaryErr)) {
+      console.warn(`[analyze] gemini failed (${primaryErr.message}), falling back to openai`);
+      try {
+        text = await openai.generate(parts, { temperature: 0.2, maxOutputTokens: 2048 });
+        provider = 'openai';
+      } catch (fallbackErr) {
+        console.error(`[analyze] openai fallback also failed: ${fallbackErr.message}`);
+        return {
+          ok: false,
+          error: fallbackErr.message,
+          detail: fallbackErr.detail,
+          primaryError: primaryErr.message
+        };
+      }
+    } else {
+      return { ok: false, error: primaryErr.message, detail: primaryErr.detail };
+    }
   }
 
   try {
     const result = JSON.parse(text);
-    // Минимальная валидация формы ответа Gemini
     if (!result.verdict || !result.verdictTitle) {
-      return { ok: false, error: 'bad_ai_response' };
+      return { ok: false, error: 'bad_ai_response', provider };
     }
-    return { ok: true, result };
+    return { ok: true, result, provider };
   } catch {
-    return { ok: false, error: 'bad_ai_json' };
+    return { ok: false, error: 'bad_ai_json', provider };
   }
 }
 

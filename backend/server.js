@@ -102,6 +102,9 @@ app.post('/api/analyze', requireTelegramAuth, async (req, res) => {
       const status = userErrors.has(out.error) ? 400 : 502;
       return res.status(status).json({ error: out.error, detail: out.detail });
     }
+    if (out.provider && out.provider !== 'gemini') {
+      console.log(`[/api/analyze] user=${req.user.id} provider=${out.provider}`);
+    }
     res.json(out.result);
   } catch (err) {
     console.error('[POST /api/analyze]', err);
