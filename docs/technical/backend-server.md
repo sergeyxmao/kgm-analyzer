@@ -72,6 +72,11 @@
 
 Потребитель: `frontend/index.html` (`Onboarding.finish()`), см. `docs/technical/frontend-auth-integration.md`.
 
+### `POST /api/analyze`
+Анализ INCI через Gemini. Защищён `requireTelegramAuth`. Принимает `{ content: { type: 'text'|'image', data: string } }`. Возвращает JSON-вердикт (`verdict`, `verdictTitle`, `productType`, `summary`, `ingredients`). При ошибке валидации — `400` с полем `error`; при проблемах с внешним AI — `502` с подробным кодом (`gemini_*`, `bad_ai_*`). Подробнее — `docs/technical/ai-analyze.md`.
+
+Тело запроса может быть крупным (base64-фото) — для этого на уровне Express поднят лимит JSON до `10mb`.
+
 ### Любой другой путь
 Ответ `404 Not Found`:
 ```json

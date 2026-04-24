@@ -12,6 +12,7 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 
 const { getSchemaVersion, listTables, countRows, dbPath } = require('./services/db');
 const { getProfileByUserId, upsertProfile } = require('./services/profiles');
+const { analyzeInci } = require('./services/analyze');
 const requireTelegramAuth = require('./middleware/requireTelegramAuth');
 
 const PORT = parseInt(process.env.PORT, 10) || 3001;
@@ -19,7 +20,7 @@ const HOST = '127.0.0.1';
 
 const app = express();
 app.disable('x-powered-by');
-app.use(express.json({ limit: '2mb' }));
+app.use(express.json({ limit: '10mb' }));
 
 // Health-check — используется для мониторинга и подтверждения что сервис жив
 app.get('/health', (req, res) => {
@@ -86,6 +87,24 @@ app.put('/api/profile', requireTelegramAuth, (req, res) => {
   } catch (err) {
     console.error('[PUT /api/profile]', err);
     res.status(500).json({ error: 'profile_write_failed' });
+  }
+});
+
+// POST /api/analyze — анализ INCI через Gemini
+app.post('/api/analyze', requireTelegramAuth, async (req, res) => {
+  try {
+    const { content } = req.body || {};
+    const out = await analyzeInci(req.user.id, content);
+    if (!out.ok) {
+      // Внешние ошибки — 502 (Bad Gateway к AI), валидация — 400
+      const userErrors = new Set(['bad_input', 'bad_type', 'empty_data', 'text_too_long', 'image_too_large']);
+      const status = userErrors.has(out.error) ? 400 : 502;
+      return res.status(status).json({ error: out.error, detail: out.detail });
+    }
+    res.json(out.result);
+  } catch (err) {
+    console.error('[POST /api/analyze]', err);
+    res.status(500).json({ error: 'analyze_failed' });
   }
 });
 
