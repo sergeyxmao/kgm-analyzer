@@ -35,6 +35,18 @@ kgm-analyzer/
 
 Документация по функциям — в `docs/technical/` (один файл = одна функция).
 
+### Запуск backend локально
+
+```bash
+cd backend
+cp .env.example .env        # заполнить реальными значениями
+npm install
+npm start
+```
+
+Сервер слушает `127.0.0.1:3001`. Проверка: `curl http://127.0.0.1:3001/health`.
+Подробнее — `docs/technical/backend-server.md`.
+
 ## Окружение
 
 `backend/.env` создаётся вручную на сервере по шаблону `backend/.env.example`.
