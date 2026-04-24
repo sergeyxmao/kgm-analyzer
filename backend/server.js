@@ -11,6 +11,7 @@ const express = require('express');
 dotenv.config({ path: path.join(__dirname, '.env') });
 
 const { getSchemaVersion, listTables, countRows, dbPath } = require('./services/db');
+const requireTelegramAuth = require('./middleware/requireTelegramAuth');
 
 const PORT = parseInt(process.env.PORT, 10) || 3001;
 const HOST = '127.0.0.1';
@@ -44,6 +45,22 @@ app.get('/db-status', (req, res) => {
     console.error('[db-status]', err);
     res.status(500).json({ status: 'error', error: err.message });
   }
+});
+
+// Текущий пользователь. Требует валидный X-Telegram-Init-Data
+app.get('/api/me', requireTelegramAuth, (req, res) => {
+  res.json({
+    id: req.user.id,
+    platform: req.user.platform,
+    platformId: req.user.platform_id,
+    username: req.user.username,
+    firstName: req.user.first_name,
+    lastName: req.user.last_name,
+    photoUrl: req.user.photo_url,
+    isAdmin: req.user.is_admin === 1,
+    createdAt: req.user.created_at,
+    lastSeenAt: req.user.last_seen_at
+  });
 });
 
 // Все прочие пути — 404 JSON

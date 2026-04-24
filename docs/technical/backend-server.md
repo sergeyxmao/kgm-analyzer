@@ -50,6 +50,14 @@
 { "status": "error", "error": "SQLITE_CANTOPEN: unable to open database file" }
 ```
 
+### `GET /api/me`
+Возвращает текущего пользователя (по Telegram initData). Защищён middleware requireTelegramAuth.
+
+Требует заголовок `X-Telegram-Init-Data`. Подробнее — `docs/technical/auth-telegram.md`.
+
+**Ответ 200 OK** (см. auth-telegram.md).
+**Ответ 401** при невалидной подписи или отсутствии заголовка.
+
 ### Любой другой путь
 Ответ `404 Not Found`:
 ```json
