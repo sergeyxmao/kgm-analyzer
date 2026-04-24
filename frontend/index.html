@@ -1439,6 +1439,58 @@ function getGeminiKey() {
   return Storage.get('adminApiKey') || DEFAULT_GEMINI_KEY || Storage.get('apiKey');
 }
 
+// ────────── API-КЛИЕНТ ──────────
+// Тонкая обёртка над fetch с автоподстановкой заголовка X-Telegram-Init-Data.
+// Все эндпоинты относительные — same-origin, proxy через nginx на Node.
+const Api = {
+  /**
+   * Возвращает initData из Telegram Mini App.
+   * Пустая строка — значит мы не в TG (веб/VK), запросы к бэку не делаем.
+   */
+  tgInitData() {
+    return window.Telegram?.WebApp?.initData || '';
+  },
+
+  /**
+   * Может ли фронт обращаться к бэку в текущей среде.
+   * В MVP: только TG. VK и web — пока localStorage-only.
+   */
+  canUseBackend() {
+    return !!this.tgInitData();
+  },
+
+  async request(path, opts = {}) {
+    const initData = this.tgInitData();
+    if (!initData) throw new Error('no_init_data');
+
+    const res = await fetch(path, {
+      method: opts.method || 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Telegram-Init-Data': initData,
+        ...(opts.headers || {})
+      },
+      body: opts.body ? JSON.stringify(opts.body) : undefined
+    });
+
+    const text = await res.text();
+    let data = null;
+    try { data = text ? JSON.parse(text) : null; } catch {}
+
+    if (!res.ok) {
+      const err = new Error(`http_${res.status}`);
+      err.status = res.status;
+      err.payload = data;
+      throw err;
+    }
+    return data;
+  },
+
+  getMe() { return this.request('/api/me'); },
+  getProfile() { return this.request('/api/profile'); },
+  putProfile(profile) { return this.request('/api/profile', { method: 'PUT', body: profile }); }
+};
+
 // ────────── ОНБОРДИНГ ──────────
 const Onboarding = {
   steps: [
@@ -1624,8 +1676,37 @@ const Onboarding = {
     }
   },
 
-  finish() {
-    Storage.set('profile', this.state.answers);
+  async finish() {
+    const answers = this.state.answers;
+
+    // Локально — всегда
+    Storage.set('profile', answers);
+
+    // На бэк — если в TG
+    if (Api.canUseBackend()) {
+      try {
+        // answers: { curlType, porosity, thickness, scalp, goals }
+        // colorState не собирается онбордингом — передаём только что есть
+        const payload = {
+          curlType: answers.curlType ?? null,
+          porosity: answers.porosity ?? null,
+          thickness: answers.thickness ?? null,
+          scalp: answers.scalp ?? null,
+          goals: answers.goals ?? []
+        };
+        await Api.putProfile(payload);
+      } catch (err) {
+        console.warn('[Onboarding] PUT /api/profile failed:', err);
+        App.toast('Профиль сохранён локально (нет связи с сервером)');
+        // Всё равно продолжаем — локальная копия сохранена
+        document.getElementById('onboarding-screen').classList.remove('active');
+        document.getElementById('app').style.display = 'block';
+        App.refreshProfile();
+        App.go('home');
+        return;
+      }
+    }
+
     document.getElementById('onboarding-screen').classList.remove('active');
     document.getElementById('app').style.display = 'block';
     App.refreshProfile();
@@ -1693,25 +1774,46 @@ const Auth = {
     }
   },
 
-  loginTelegram() {
+  async loginTelegram() {
     const tg = window.Telegram?.WebApp;
     if (!tg || !tg.initDataUnsafe?.user) {
       App.toast('Не удалось получить данные Telegram');
       return;
     }
     const u = tg.initDataUnsafe.user;
-    const isAdmin = u.id === this.ADMIN_TG_ID;
-    Storage.set('user', {
-      type: 'telegram',
-      id: 'tg_' + u.id,
-      tgId: u.id,
-      name: [u.first_name, u.last_name].filter(Boolean).join(' '),
-      username: u.username,
-      photoUrl: u.photo_url,
-      isAdmin
-    });
-    if (isAdmin) App.toast('Вход администратора ✨');
-    this.afterLogin();
+
+    // Сначала пробуем auth через бэк (источник истины)
+    try {
+      const me = await Api.getMe();
+      Storage.set('user', {
+        type: 'telegram',
+        id: me.platformId,
+        tgId: u.id,
+        name: [me.firstName, me.lastName].filter(Boolean).join(' ') || u.first_name,
+        username: me.username,
+        photoUrl: me.photoUrl || u.photo_url,
+        isAdmin: me.isAdmin === true  // источник — бэк, не клиент
+      });
+      if (me.isAdmin) App.toast('Вход администратора ✨');
+      await this.afterLogin();
+      return;
+    } catch (err) {
+      console.warn('[Auth] backend /api/me failed, falling back to localStorage:', err);
+      // Fallback — работаем по старому (localStorage-only)
+      const isAdmin = u.id === this.ADMIN_TG_ID;
+      Storage.set('user', {
+        type: 'telegram',
+        id: 'tg_' + u.id,
+        tgId: u.id,
+        name: [u.first_name, u.last_name].filter(Boolean).join(' '),
+        username: u.username,
+        photoUrl: u.photo_url,
+        isAdmin
+      });
+      App.toast('Нет связи с сервером, работаем локально');
+      if (isAdmin) App.toast('Вход администратора (офлайн)');
+      await this.afterLogin();
+    }
   },
 
   async loginVK() {
@@ -1741,8 +1843,34 @@ const Auth = {
     this.afterLogin();
   },
 
-  afterLogin() {
+  async afterLogin() {
     document.getElementById('auth-screen').classList.remove('active');
+
+    // Попытка подтянуть профиль с бэка (только в TG)
+    if (Api.canUseBackend()) {
+      try {
+        const res = await Api.getProfile();
+        if (res.profile) {
+          // Преобразуем серверный формат в формат localStorage (camelCase → совместимый)
+          const p = res.profile;
+          Storage.set('profile', {
+            curlType: p.curlType,
+            porosity: p.porosity,
+            thickness: p.thickness,
+            scalp: p.scalp,
+            color: p.colorState,
+            goals: p.goals || []
+          });
+        } else {
+          // На сервере профиля ещё нет — очистим локальный, чтобы онбординг запустился
+          Storage.del('profile');
+        }
+      } catch (err) {
+        console.warn('[Auth] GET /api/profile failed, using localStorage:', err);
+        // Fallback — используем что в localStorage
+      }
+    }
+
     if (Storage.get('profile')) {
       document.getElementById('app').style.display = 'block';
       App.refreshProfile();
