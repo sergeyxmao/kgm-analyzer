@@ -11,7 +11,7 @@ API: https://api.elenadortman.store (в разработке)
 - **Backend:** Node.js + Express + better-sqlite3
 - **БД:** SQLite (`data/kudri.db`)
 - **AI:** Google Gemini 2.5 Flash (OCR + анализ INCI)
-- **Платформы:** Telegram Mini App, VK Mini App, веб-браузер
+- **Платформы:** Telegram Mini App, VK Mini App, веб-браузер 
 
 ## Структура
 
