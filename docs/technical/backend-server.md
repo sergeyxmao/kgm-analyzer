@@ -84,6 +84,11 @@ CRUD для сканов. Всё защищено `requireTelegramAuth`. `POST` 
 
 Потребители: `frontend/index.html` (`Scanner.saveTo`, `Catalog.load`, `App.refreshRecent`), см. `docs/technical/scanner-flow.md`.
 
+### `POST /api/scans/full-photo`
+Vision-режим: фото → S3 (Beget) → AI → запись в БД одним вызовом. Защищён `requireTelegramAuth`. `multipart/form-data`, поле `photo` (JPEG/PNG, ≤ 2 МБ). Возвращает `{scan}` с `photoKey` и `photoUrl` (presigned GET, 1 час). Подробнее — `docs/technical/photo-analysis.md`.
+
+Потребитель: `frontend/index.html` (`Scanner.analyzePhoto`).
+
 ### `POST /telegram/webhook/<secret>`
 Endpoint для Telegram webhook. Принимает обновления от Telegram API. Подробнее — `docs/technical/telegram-bot.md`.
 
@@ -105,6 +110,11 @@ Endpoint для Telegram webhook. Принимает обновления от T
 | `TG_WEBHOOK_SECRET` | 32-байт hex для пути webhook Telegram-бота | — |
 | `ADMIN_TG_ID` | Telegram ID администратора | `845707896` |
 | `DB_PATH` | Путь к SQLite-БД (для будущих ТЗ) | `./data/kudri.db` |
+| `S3_ENDPOINT` | URL S3-совместимого хранилища (Beget Cloud Storage) | — |
+| `S3_BUCKET` | Имя bucket для фото сканов | — |
+| `S3_ACCESS_KEY` | Access key Beget S3 | — |
+| `S3_SECRET_KEY` | Secret key Beget S3 | — |
+| `S3_PHOTO_PREFIX` | Префикс ключей для фото в bucket | `kudri-photos/` |
 
 ## Запуск локально
 ```bash
@@ -123,3 +133,4 @@ curl http://127.0.0.1:3001/health
 - 2026-04-24: Создан файл. Минимальный сервер с `/health` + 404/500 хендлерами.
 - 2026-04-26: Удалена переменная `GEMINI_API_KEY` — настройки AI переехали в таблицу `ai_agents`.
 - 2026-04-26: Подключён Telegram-бот через webhook. Добавлена переменная `TG_WEBHOOK_SECRET`.
+- 2026-04-26: Добавлены S3-переменные (Beget Cloud Storage), эндпоинт `/api/scans/full-photo` для vision-анализа.
