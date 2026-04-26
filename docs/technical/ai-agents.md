@@ -9,6 +9,7 @@
 - `backend/middleware/requireAdmin.js` — проверяет `is_admin=1` для всех `/api/admin/*`.
 - `backend/services/users.js` — функция `getUserById` для проверки админства.
 - БД: таблица `ai_agents` (миграция `backend/db/003-ai-agents.sql`).
+- `frontend/index.html` — UI для управления агентами в админ-панели Mini App, объект `AdminAgents` (см. [admin-ui.md](./admin-ui.md)).
 
 ## Схема БД
 ```sql
@@ -133,3 +134,4 @@ curl -X DELETE -H "X-Telegram-Init-Data: $INIT_DATA" https://api.elenadortman.st
 
 ## История изменений
 - 2026-04-24: Создано (вторая попытка после revert неудачной первой, см. PR #10 → коммит `d94d89c`). Первая попытка упала из-за расхождения выдуманной схемы с реальной; во второй схема сверена с prod до написания кода.
+- 2026-04-26: Добавлен UI в Mini App (см. [admin-ui.md](./admin-ui.md)). Удалён мёртвый код Gemini-ключа из эпохи GitHub Pages.

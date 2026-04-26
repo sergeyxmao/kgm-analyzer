@@ -1339,43 +1339,12 @@ input, select, textarea { font: inherit; color: inherit; }
     </div>
 
     <div class="profile-card">
-      <div class="profile-card-head">🔑 Ключ Gemini API</div>
-      <div style="font-size:12px; color:var(--ink-mute); margin-bottom:12px; line-height:1.5">
-        Этот ключ используется для всех запросов всех пользователей. Получить новый: <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--rose-400)">aistudio.google.com/apikey</a>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px">
+        <div class="profile-card-head" style="margin-bottom:0">🤖 AI-агенты</div>
+        <button class="btn btn-primary" style="padding:6px 14px; font-size:13px" onclick="AdminAgents.openForm()">+ Добавить</button>
       </div>
-      <input type="text" class="auth-input" id="admin-gemini-key" placeholder="AIzaSy...">
-      <div style="display:flex; gap:8px; margin-top:8px">
-        <button class="btn btn-primary" style="flex:1" onclick="Admin.saveKey()">Сохранить</button>
-        <button class="btn btn-ghost" onclick="Admin.testKey()">Проверить</button>
-      </div>
-      <div id="admin-key-status" style="font-size:12px; margin-top:10px; color:var(--ink-mute)"></div>
-    </div>
-
-    <div class="profile-card">
-      <div class="profile-card-head">🤖 AI-агенты</div>
-      <div class="profile-row">
-        <span class="profile-row-label">OCR-агент</span>
-        <span class="profile-row-value">Gemini 2.5 Flash</span>
-      </div>
-      <div class="profile-row">
-        <span class="profile-row-label">Аналитик INCI</span>
-        <span class="profile-row-value">Gemini 2.5 Flash</span>
-      </div>
-      <div class="profile-row">
-        <span class="profile-row-label">Доп. провайдеры</span>
-        <span class="profile-row-value" style="color:var(--ink-mute)">Блок 2</span>
-      </div>
-    </div>
-
-    <div class="profile-card">
-      <div class="profile-card-head">📊 Статистика</div>
-      <div class="profile-row">
-        <span class="profile-row-label">Всего сканов (этот браузер)</span>
-        <span class="profile-row-value" id="admin-stat-scans">—</span>
-      </div>
-      <div class="profile-row">
-        <span class="profile-row-label">Сохранено в полки</span>
-        <span class="profile-row-value" id="admin-stat-saved">—</span>
+      <div id="admin-agents-list">
+        <div class="empty"><div class="empty-text">Загружаю…</div></div>
       </div>
     </div>
 
@@ -1406,6 +1375,74 @@ input, select, textarea { font: inherit; color: inherit; }
       </button>
     </div>
   </nav>
+
+  <!-- Модальный экран формы агента -->
+  <div class="onboarding" id="agent-form-screen">
+    <div class="onb-inner" style="padding:24px 24px 100px">
+      <div class="onb-eyebrow" id="agent-form-eyebrow">Новый агент</div>
+      <h2 class="onb-title" id="agent-form-title">Настройки <em>агента</em></h2>
+
+      <div style="display:grid; gap:16px; margin-top:24px">
+        <div>
+          <label class="profile-row-label">Имя</label>
+          <input type="text" class="text-input-area" id="agent-form-name" style="min-height:auto; padding:12px 16px" placeholder="Например: Gemini Flash Lite">
+        </div>
+        <div>
+          <label class="profile-row-label">Провайдер</label>
+          <select class="text-input-area" id="agent-form-provider" style="min-height:auto; padding:12px 16px">
+            <option value="gemini">gemini</option>
+            <option value="openai">openai</option>
+            <option value="deepseek">deepseek</option>
+            <option value="anthropic">anthropic</option>
+          </select>
+        </div>
+        <div>
+          <label class="profile-row-label">Роль</label>
+          <select class="text-input-area" id="agent-form-role" style="min-height:auto; padding:12px 16px">
+            <option value="analyst">analyst — анализ INCI</option>
+            <option value="ocr">ocr — распознавание текста</option>
+            <option value="both">both — обе задачи</option>
+          </select>
+        </div>
+        <div>
+          <label class="profile-row-label">Endpoint (полный URL запроса)</label>
+          <input type="text" class="text-input-area" id="agent-form-endpoint" style="min-height:auto; padding:12px 16px" placeholder="https://...">
+        </div>
+        <div>
+          <label class="profile-row-label">Модель</label>
+          <input type="text" class="text-input-area" id="agent-form-model" style="min-height:auto; padding:12px 16px" placeholder="gemini-2.5-flash-lite">
+        </div>
+        <div>
+          <label class="profile-row-label">API Key <span id="agent-form-key-hint" style="color:var(--ink-mute); font-size:12px"></span></label>
+          <input type="password" class="text-input-area" id="agent-form-apikey" style="min-height:auto; padding:12px 16px" placeholder="оставь пустым чтобы не менять">
+        </div>
+        <div>
+          <label class="profile-row-label">Priority (меньше = выше)</label>
+          <input type="number" class="text-input-area" id="agent-form-priority" style="min-height:auto; padding:12px 16px" value="100">
+        </div>
+        <div style="display:flex; align-items:center; gap:12px">
+          <input type="checkbox" id="agent-form-active" checked>
+          <label for="agent-form-active" class="profile-row-label">Активный</label>
+        </div>
+        <div>
+          <label class="profile-row-label">Params (JSON, опционально)</label>
+          <textarea class="text-input-area" id="agent-form-params" style="min-height:80px; font-family:monospace; font-size:12px" placeholder='{"temperature":0.2}'></textarea>
+          <div id="agent-form-params-error" style="color:var(--danger); font-size:12px; margin-top:4px; display:none">Невалидный JSON</div>
+        </div>
+
+        <div id="agent-form-error" style="color:var(--danger); font-size:13px; display:none"></div>
+
+        <button class="btn btn-ghost btn-block" id="agent-form-delete" style="color:var(--danger); display:none" onclick="AdminAgents.deleteCurrent()">Удалить агента</button>
+      </div>
+    </div>
+
+    <div class="onb-nav">
+      <div class="onb-nav-inner">
+        <button class="btn btn-ghost" onclick="AdminAgents.closeForm()">Отмена</button>
+        <button class="btn btn-primary" id="agent-form-save" onclick="AdminAgents.save()">Сохранить</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- TOAST -->
@@ -1426,18 +1463,6 @@ const Storage = {
   set(k, v) { localStorage.setItem('curlly:' + k, JSON.stringify(v)); },
   del(k) { localStorage.removeItem('curlly:' + k); }
 };
-
-// Дефолтный админский ключ Gemini (зашит на этапе разработки).
-// Перезаписывается, если админ сохранил свой через админ-панель.
-// Ключ удалён из кода. Запросы к Gemini будут проходить через серверный прокси
-// (/api/analyze на api.elenadortman.store). См. docs/technical/ai-router.md (будет создан).
-const DEFAULT_GEMINI_KEY = '';
-
-// Получить активный ключ Gemini для запросов
-function getGeminiKey() {
-  // Приоритет: 1) ключ, сохранённый админом 2) дефолтный 3) персональный (legacy)
-  return Storage.get('adminApiKey') || DEFAULT_GEMINI_KEY || Storage.get('apiKey');
-}
 
 // ────────── API-КЛИЕНТ ──────────
 // Тонкая обёртка над fetch с автоподстановкой заголовка X-Telegram-Init-Data.
@@ -2171,89 +2196,188 @@ const Scanner = {
 
 // ────────── АДМИН-ПАНЕЛЬ ──────────
 const Admin = {
-  // Маскирует ключ для отображения: AIzaSy***0xAg
-  mask(key) {
-    if (!key || key.length < 10) return '';
-    return key.slice(0, 6) + '***' + key.slice(-4);
-  },
-
-  loadCurrentKey() {
-    const input = document.getElementById('admin-gemini-key');
-    const status = document.getElementById('admin-key-status');
-    const saved = Storage.get('adminApiKey');
-    const active = saved || DEFAULT_GEMINI_KEY;
-
-    input.value = active || '';
-    if (saved) {
-      status.textContent = `Сохранён твой ключ: ${this.mask(saved)}`;
-      status.style.color = 'var(--green)';
-    } else if (DEFAULT_GEMINI_KEY) {
-      status.textContent = `Используется встроенный ключ: ${this.mask(DEFAULT_GEMINI_KEY)} (рекомендую сохранить свой)`;
-      status.style.color = 'var(--warning)';
-    } else {
-      status.textContent = 'Ключ не задан';
-      status.style.color = 'var(--danger)';
-    }
-
-    // Статистика
-    const history = Storage.get('history', []);
-    document.getElementById('admin-stat-scans').textContent = history.length;
-    const saved_count = history.filter(h => h.shelf && h.shelf !== 'history').length;
-    document.getElementById('admin-stat-saved').textContent = saved_count;
-  },
-
-  saveKey() {
-    const key = document.getElementById('admin-gemini-key').value.trim();
-    if (!key) {
-      Storage.del('adminApiKey');
-      App.toast('Ключ удалён, активен встроенный');
-    } else if (!key.startsWith('AIza')) {
-      App.toast('Ключ должен начинаться с AIza...');
-      return;
-    } else {
-      Storage.set('adminApiKey', key);
-      App.toast('Ключ сохранён ✓');
-    }
-    this.loadCurrentKey();
-  },
-
-  async testKey() {
-    const key = document.getElementById('admin-gemini-key').value.trim() || DEFAULT_GEMINI_KEY;
-    const status = document.getElementById('admin-key-status');
-    if (!key) return App.toast('Нет ключа для проверки');
-
-    status.textContent = 'Проверяю…';
-    status.style.color = 'var(--ink-mute)';
-
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: 'Ответь одним словом: ок' }] }],
-          generationConfig: { maxOutputTokens: 10 }
-        })
-      });
-      if (res.ok) {
-        status.textContent = '✓ Ключ работает';
-        status.style.color = 'var(--green)';
-      } else {
-        const err = await res.text();
-        status.textContent = `✗ Ошибка ${res.status}: ${err.slice(0, 100)}`;
-        status.style.color = 'var(--danger)';
-      }
-    } catch (e) {
-      status.textContent = '✗ Сетевая ошибка: ' + e.message;
-      status.style.color = 'var(--danger)';
-    }
-  },
-
   clearAllData() {
     if (!confirm('Очистить ВСЕ данные приложения? (профиль, история, настройки, ключ админа)')) return;
     Object.keys(localStorage).filter(k => k.startsWith('curlly:')).forEach(k => localStorage.removeItem(k));
     App.toast('Всё очищено');
     setTimeout(() => location.reload(), 500);
+  }
+};
+
+const AdminAgents = {
+  list: [],
+  editingId: null,
+
+  maskKey(key) {
+    if (!key || key.length < 10) return '***';
+    return key.slice(0, 6) + '***' + key.slice(-4);
+  },
+
+  async load() {
+    const container = document.getElementById('admin-agents-list');
+    if (!Api.canUseBackend()) {
+      container.innerHTML = '<div class="empty"><div class="empty-text">Доступно только в Telegram</div></div>';
+      return;
+    }
+    try {
+      const data = await Api.request('/api/admin/agents');
+      this.list = data.agents || [];
+      this.render();
+    } catch (err) {
+      const code = err.payload?.error || err.message;
+      container.innerHTML = `<div class="empty"><div class="empty-text">Ошибка: ${code}</div></div>`;
+    }
+  },
+
+  render() {
+    const container = document.getElementById('admin-agents-list');
+    if (this.list.length === 0) {
+      container.innerHTML = '<div class="empty"><div class="empty-text">Нет агентов</div></div>';
+      return;
+    }
+    container.innerHTML = this.list.map(a => `
+      <div class="recent-item" style="cursor:pointer" onclick="AdminAgents.openForm(${a.id})">
+        <div class="recent-item-icon" style="background:${a.active ? 'var(--green-soft)' : 'var(--bone)'}; color:${a.active ? 'var(--green)' : 'var(--ink-mute)'}">${a.active ? '●' : '○'}</div>
+        <div class="recent-item-content">
+          <div class="recent-item-name">${this.escape(a.name)}</div>
+          <div class="recent-item-date">
+            ${a.provider} · ${a.role} · ${this.escape(a.model)} · priority ${a.priority}
+          </div>
+        </div>
+        <button class="action-btn" style="padding:6px 10px; font-size:11px" onclick="event.stopPropagation(); AdminAgents.toggleActive(${a.id}, ${!a.active})">
+          ${a.active ? 'Выкл' : 'Вкл'}
+        </button>
+      </div>
+    `).join('');
+  },
+
+  escape(s) {
+    if (s == null) return '';
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  },
+
+  openForm(id) {
+    this.editingId = id || null;
+    const isNew = !id;
+    const a = isNew ? null : this.list.find(x => x.id === id);
+
+    document.getElementById('agent-form-eyebrow').textContent = isNew ? 'Новый агент' : `Редактирование · ID ${id}`;
+    document.getElementById('agent-form-title').innerHTML = isNew ? 'Новый <em>агент</em>' : 'Редактировать <em>агента</em>';
+
+    document.getElementById('agent-form-name').value     = a ? a.name : '';
+    document.getElementById('agent-form-provider').value = a ? a.provider : 'gemini';
+    document.getElementById('agent-form-role').value     = a ? a.role : 'analyst';
+    document.getElementById('agent-form-endpoint').value = a ? a.endpoint : '';
+    document.getElementById('agent-form-model').value    = a ? a.model : '';
+    document.getElementById('agent-form-priority').value = a ? a.priority : 100;
+    document.getElementById('agent-form-active').checked = a ? a.active : true;
+    document.getElementById('agent-form-params').value   = (a && a.params) ? JSON.stringify(a.params, null, 2) : '';
+
+    const keyInput = document.getElementById('agent-form-apikey');
+    const keyHint = document.getElementById('agent-form-key-hint');
+    keyInput.value = '';
+    if (isNew) {
+      keyInput.placeholder = 'sk-... / AIza... / ...';
+      keyHint.textContent = '';
+    } else {
+      keyInput.placeholder = 'оставь пустым чтобы не менять';
+      keyHint.textContent = `· текущий: ${this.maskKey(a.apiKey)}`;
+    }
+
+    document.getElementById('agent-form-delete').style.display = isNew ? 'none' : 'block';
+    document.getElementById('agent-form-error').style.display = 'none';
+    document.getElementById('agent-form-params-error').style.display = 'none';
+
+    document.getElementById('agent-form-screen').classList.add('active');
+  },
+
+  closeForm() {
+    document.getElementById('agent-form-screen').classList.remove('active');
+    this.editingId = null;
+  },
+
+  collectPayload() {
+    const isNew = !this.editingId;
+    const payload = {
+      name:     document.getElementById('agent-form-name').value.trim(),
+      provider: document.getElementById('agent-form-provider').value,
+      role:     document.getElementById('agent-form-role').value,
+      endpoint: document.getElementById('agent-form-endpoint').value.trim(),
+      model:    document.getElementById('agent-form-model').value.trim(),
+      priority: parseInt(document.getElementById('agent-form-priority').value, 10),
+      active:   document.getElementById('agent-form-active').checked
+    };
+    const apiKey = document.getElementById('agent-form-apikey').value.trim();
+    if (apiKey) payload.apiKey = apiKey;
+    else if (isNew) return { error: 'API Key обязателен для нового агента' };
+
+    const paramsRaw = document.getElementById('agent-form-params').value.trim();
+    if (paramsRaw === '') {
+      payload.params = null;
+    } else {
+      try {
+        const parsed = JSON.parse(paramsRaw);
+        if (typeof parsed !== 'object' || Array.isArray(parsed)) {
+          return { error: 'Params должен быть JSON-объектом' };
+        }
+        payload.params = parsed;
+      } catch {
+        return { error: 'Params: невалидный JSON' };
+      }
+    }
+
+    return { payload };
+  },
+
+  async save() {
+    const result = this.collectPayload();
+    if (result.error) {
+      const el = document.getElementById('agent-form-error');
+      el.textContent = result.error;
+      el.style.display = 'block';
+      return;
+    }
+    const payload = result.payload;
+
+    try {
+      if (this.editingId) {
+        await Api.request(`/api/admin/agents/${this.editingId}`, { method: 'PUT', body: payload });
+      } else {
+        await Api.request('/api/admin/agents', { method: 'POST', body: payload });
+      }
+      this.closeForm();
+      await this.load();
+      App.toast('Сохранено ✓');
+    } catch (err) {
+      const code = err.payload?.error || err.message;
+      const field = err.payload?.field ? ` (${err.payload.field})` : '';
+      const el = document.getElementById('agent-form-error');
+      el.textContent = `Ошибка: ${code}${field}`;
+      el.style.display = 'block';
+    }
+  },
+
+  async deleteCurrent() {
+    if (!this.editingId) return;
+    const a = this.list.find(x => x.id === this.editingId);
+    if (!confirm(`Удалить агента "${a?.name || this.editingId}"?`)) return;
+    try {
+      await Api.request(`/api/admin/agents/${this.editingId}`, { method: 'DELETE' });
+      this.closeForm();
+      await this.load();
+      App.toast('Удалено');
+    } catch (err) {
+      App.toast('Ошибка удаления');
+    }
+  },
+
+  async toggleActive(id, newActive) {
+    try {
+      await Api.request(`/api/admin/agents/${id}`, { method: 'PUT', body: { active: newActive } });
+      await this.load();
+    } catch (err) {
+      App.toast('Не удалось изменить');
+    }
   }
 };
 
@@ -2376,7 +2500,7 @@ const App = {
       Scanner.currentImage = null;
     }
     if (screen === 'profile') this.refreshProfileScreen();
-    if (screen === 'admin') Admin.loadCurrentKey();
+    if (screen === 'admin') AdminAgents.load();
     if (screen === 'catalog') Catalog.init();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   },
