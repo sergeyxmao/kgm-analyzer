@@ -44,3 +44,4 @@ SQLite. Файл `data/kudri.db`. Работает через `better-sqlite3` (
 
 ## История изменений
 - 2026-04-24: Миграция 001. Начальная схема (users, profiles, scans, settings, schema_migrations).
+- 2026-04-26: Миграция 004. Переименована `scans.photo_path` → `scans.photo_key` (теперь хранит S3-ключ, а не путь).

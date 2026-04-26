@@ -1119,6 +1119,13 @@ input, select, textarea { font: inherit; color: inherit; }
   .greeting-title, .onb-title { font-size: 26px; }
   .hero-scan-title { font-size: 24px; }
 }
+
+.recent-item-icon img {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--r-sm);
+  object-fit: cover;
+}
 </style>
 </head>
 <body>
@@ -2073,9 +2080,98 @@ const Scanner = {
   async handleFile(e) {
     const file = e.target.files[0];
     if (!file) return;
-    // Анализ по фото пока не поддерживается — запланирован отдельным ТЗ (S3 + vision).
-    App.toast('Анализ по фото скоро. Используй текстовый режим.');
-    e.target.value = ''; // сброс выбранного файла
+    if (!file.type.startsWith('image/')) return App.toast('Выбери изображение');
+
+    const result = document.getElementById('scan-result');
+    result.innerHTML = '<div class="analysis-loading"><div class="spinner"></div><div class="analysis-loading-text">Подготавливаю фото…</div></div>';
+
+    try {
+      const compressed = await this.compressImage(file, 1024, 0.8);
+      this.currentPhotoBlob = compressed;
+      const previewUrl = URL.createObjectURL(compressed);
+
+      result.innerHTML = `
+        <img class="preview-img" src="${previewUrl}">
+        <button class="btn btn-primary btn-block" id="btn-analyze-photo">Проанализировать</button>
+        <button class="btn btn-ghost btn-block" id="btn-retake-photo" style="margin-top:8px">Перефотографировать</button>
+      `;
+      document.getElementById('btn-analyze-photo').onclick = () => this.analyzePhoto();
+      document.getElementById('btn-retake-photo').onclick = () => {
+        this.currentPhotoBlob = null;
+        result.innerHTML = '';
+        document.getElementById('file-input').value = '';
+        document.getElementById('file-input').click();
+      };
+    } catch (err) {
+      console.error('[Scanner.handleFile]', err);
+      result.innerHTML = '';
+      App.toast('Не удалось обработать фото');
+    } finally {
+      e.target.value = '';
+    }
+  },
+
+  // Сжатие через canvas. Возвращает Blob (image/jpeg).
+  compressImage(file, maxSide, quality) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxSide || height > maxSide) {
+          if (width > height) {
+            height = Math.round(height * maxSide / width);
+            width = maxSide;
+          } else {
+            width = Math.round(width * maxSide / height);
+            height = maxSide;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('toBlob_failed')), 'image/jpeg', quality);
+      };
+      img.onerror = () => reject(new Error('image_load_failed'));
+      img.src = URL.createObjectURL(file);
+    });
+  },
+
+  async analyzePhoto() {
+    if (!this.currentPhotoBlob) return App.toast('Нет фото');
+    if (!Api.canUseBackend()) return App.toast('Сканер доступен только в Telegram');
+
+    const result = document.getElementById('scan-result');
+    result.innerHTML = '<div class="analysis-loading"><div class="spinner"></div><div class="analysis-loading-text">Изучаю состав…</div></div>';
+
+    try {
+      const fd = new FormData();
+      fd.append('photo', this.currentPhotoBlob, 'scan.jpg');
+      const res = await fetch('/api/scans/full-photo', {
+        method: 'POST',
+        headers: { 'X-Telegram-Init-Data': Api.tgInitData() },
+        body: fd
+      });
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : null;
+      if (!res.ok) throw Object.assign(new Error('http_' + res.status), { payload: data });
+
+      this.lastScanId = data.scan.id;
+      this.currentPhotoBlob = null;
+      result.innerHTML = '';
+      this.renderResult({
+        verdict: data.scan.verdict,
+        verdictTitle: data.scan.verdictTitle,
+        productType: data.scan.productType,
+        summary: data.scan.summary,
+        ingredients: data.scan.ingredients
+      }, { type: 'image' });
+      App.refreshRecent();
+    } catch (err) {
+      const msg = err.payload?.error || err.message || 'unknown';
+      result.innerHTML = `<div class="verdict-card bad"><div class="verdict-head"><div class="verdict-icon">⚠️</div><div><div class="verdict-status">Ошибка</div><div class="verdict-meta">${msg}</div></div></div></div>`;
+    }
   },
 
   async analyzeText() {
@@ -2442,9 +2538,12 @@ const Catalog = {
         const dStr = date.toLocaleDateString('ru', { day:'numeric', month:'short' });
         const verdictMap = { good:'badge-good', warn:'badge-warn', bad:'badge-bad' };
         const txtMap = { good:'Подходит', warn:'С оговорками', bad:'Нет' };
+        const iconHtml = s.photoUrl
+          ? `<div class="recent-item-icon" style="background:none;padding:0"><img src="${s.photoUrl}" alt=""></div>`
+          : `<div class="recent-item-icon">🧴</div>`;
         return `
           <div class="recent-item">
-            <div class="recent-item-icon">🧴</div>
+            ${iconHtml}
             <div class="recent-item-content">
               <div class="recent-item-name">${s.productType || 'Средство'}</div>
               <div class="recent-item-date">${dStr} · ${s.shelf}</div>
@@ -2588,9 +2687,12 @@ const App = {
         const dStr = date.toLocaleDateString('ru', { day:'numeric', month:'short' });
         const verdictMap = { good:'badge-good', warn:'badge-warn', bad:'badge-bad' };
         const txtMap = { good:'Подходит', warn:'С оговорками', bad:'Нет' };
+        const iconHtml = s.photoUrl
+          ? `<div class="recent-item-icon" style="background:none;padding:0"><img src="${s.photoUrl}" alt=""></div>`
+          : `<div class="recent-item-icon">🧴</div>`;
         return `
           <div class="recent-item">
-            <div class="recent-item-icon">🧴</div>
+            ${iconHtml}
             <div class="recent-item-content">
               <div class="recent-item-name">${s.productType || 'Средство'}</div>
               <div class="recent-item-date">${dStr}</div>

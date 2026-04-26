@@ -6,16 +6,24 @@
 const path = require('path');
 const dotenv = require('dotenv');
 const express = require('express');
+const multer = require('multer');
 
 // Загружаем .env из backend/.env (рядом с этим файлом)
 dotenv.config({ path: path.join(__dirname, '.env') });
 
 const { getSchemaVersion, listTables, countRows, dbPath } = require('./services/db');
 const { getProfileByUserId, upsertProfile } = require('./services/profiles');
-const { analyzeInci } = require('./services/analyze');
+const { analyzeInci, buildAnalystPrompt } = require('./services/analyze');
 const scans = require('./services/scans');
+const s3 = require('./services/s3');
+const aiRouter = require('./services/ai-router');
 const requireTelegramAuth = require('./middleware/requireTelegramAuth');
 const { getWebhookHandler } = require('./bot');
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 } // 2 МБ
+});
 
 const PORT = parseInt(process.env.PORT, 10) || 3001;
 const HOST = '127.0.0.1';
@@ -111,11 +119,11 @@ app.post('/api/analyze', requireTelegramAuth, async (req, res) => {
 });
 
 // POST /api/scans — создать запись о скане (после успешного /api/analyze)
-app.post('/api/scans', requireTelegramAuth, (req, res) => {
+app.post('/api/scans', requireTelegramAuth, async (req, res) => {
   try {
     const data = req.body || {};
     if (!data.verdict) return res.status(400).json({ error: 'verdict_required' });
-    const scan = scans.createScan(req.user.id, data);
+    const scan = await scans.createScan(req.user.id, data);
     res.status(201).json({ scan });
   } catch (err) {
     if (err.code === 'bad_verdict') return res.status(400).json({ error: err.code });
@@ -125,11 +133,11 @@ app.post('/api/scans', requireTelegramAuth, (req, res) => {
 });
 
 // GET /api/scans — список сканов текущего пользователя с фильтром
-app.get('/api/scans', requireTelegramAuth, (req, res) => {
+app.get('/api/scans', requireTelegramAuth, async (req, res) => {
   try {
     const shelf = req.query.shelf || 'all';
     const limit = req.query.limit || 50;
-    const list = scans.listScans(req.user.id, shelf, limit);
+    const list = await scans.listScans(req.user.id, shelf, limit);
     res.json({ scans: list });
   } catch (err) {
     if (err.code === 'bad_shelf') return res.status(400).json({ error: err.code });
@@ -139,14 +147,14 @@ app.get('/api/scans', requireTelegramAuth, (req, res) => {
 });
 
 // PUT /api/scans/:id/shelf — переместить на полку
-app.put('/api/scans/:id/shelf', requireTelegramAuth, (req, res) => {
+app.put('/api/scans/:id/shelf', requireTelegramAuth, async (req, res) => {
   try {
     const scanId = parseInt(req.params.id, 10);
     if (!scanId) return res.status(400).json({ error: 'bad_id' });
     const shelf = req.body?.shelf;
     if (!shelf) return res.status(400).json({ error: 'shelf_required' });
 
-    const scan = scans.updateShelf(scanId, req.user.id, shelf);
+    const scan = await scans.updateShelf(scanId, req.user.id, shelf);
     if (!scan) return res.status(404).json({ error: 'not_found' });
     res.json({ scan });
   } catch (err) {
@@ -167,6 +175,60 @@ app.delete('/api/scans/:id', requireTelegramAuth, (req, res) => {
   } catch (err) {
     console.error('[DELETE /api/scans/:id]', err);
     res.status(500).json({ error: 'delete_failed' });
+  }
+});
+
+// POST /api/scans/full-photo — фото → S3 → AI → запись в БД
+app.post('/api/scans/full-photo', requireTelegramAuth, upload.single('photo'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'no_photo' });
+
+  const mime = req.file.mimetype;
+  if (mime !== 'image/jpeg' && mime !== 'image/png') {
+    return res.status(400).json({ error: 'bad_mime' });
+  }
+
+  try {
+    // 1. Загрузка в S3
+    const photoKey = await s3.uploadObject(req.file.buffer, mime, 'scans');
+
+    // 2. Анализ через AI
+    const profile = getProfileByUserId(req.user.id);
+    const prompt = buildAnalystPrompt(profile);
+    let text;
+    try {
+      text = await aiRouter.generate({
+        prompt,
+        image: { mime, base64: req.file.buffer.toString('base64') }
+      }, 'analyst');
+    } catch (err) {
+      try { await s3.deleteObject(photoKey); } catch {}
+      return res.status(502).json({ error: err.code || err.message, detail: err.detail });
+    }
+
+    let result;
+    try {
+      result = JSON.parse(text);
+      if (!result.verdict || !result.verdictTitle) throw new Error('no_verdict');
+    } catch {
+      try { await s3.deleteObject(photoKey); } catch {}
+      return res.status(502).json({ error: 'bad_ai_response' });
+    }
+
+    // 3. Сохранение в БД
+    const scan = await scans.createScan(req.user.id, {
+      verdict: result.verdict,
+      verdictTitle: result.verdictTitle,
+      productType: result.productType,
+      summary: result.summary,
+      ingredients: result.ingredients,
+      profileSnapshot: profile,
+      photoKey
+    });
+
+    res.status(201).json({ scan });
+  } catch (err) {
+    console.error('[POST /api/scans/full-photo]', err);
+    res.status(500).json({ error: 'photo_scan_failed' });
   }
 });
 

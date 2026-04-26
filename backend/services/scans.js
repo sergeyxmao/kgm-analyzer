@@ -4,13 +4,14 @@
  */
 
 const { db } = require('./db');
+const s3 = require('./s3');
 
 const VALID_SHELVES = ['history', 'mine', 'wishlist', 'rejected'];
 const VALID_VERDICTS = ['good', 'warn', 'bad'];
 
 const insertStmt = db.prepare(`
-  INSERT INTO scans (user_id, raw_inci, verdict, verdict_title, product_type, summary, ingredients, profile_snapshot, shelf)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'history')
+  INSERT INTO scans (user_id, raw_inci, verdict, verdict_title, product_type, summary, ingredients, profile_snapshot, photo_key, shelf)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'history')
 `);
 
 const selectByIdStmt = db.prepare(
@@ -36,7 +37,7 @@ const deleteStmt = db.prepare(
 /**
  * Создаёт скан. Возвращает созданную запись.
  */
-function createScan(userId, data) {
+async function createScan(userId, data) {
   if (!VALID_VERDICTS.includes(data.verdict)) {
     const err = new Error('bad_verdict');
     err.code = 'bad_verdict';
@@ -51,7 +52,8 @@ function createScan(userId, data) {
     data.productType ?? null,
     data.summary ?? null,
     data.ingredients ? JSON.stringify(data.ingredients) : null,
-    data.profileSnapshot ? JSON.stringify(data.profileSnapshot) : null
+    data.profileSnapshot ? JSON.stringify(data.profileSnapshot) : null,
+    data.photoKey ?? null
   );
 
   return getScanById(info.lastInsertRowid, userId);
@@ -61,7 +63,7 @@ function createScan(userId, data) {
  * Возвращает список сканов пользователя с фильтром по полке.
  * shelf = 'all' — все сканы (включая history). Иначе конкретная полка.
  */
-function listScans(userId, shelf = 'all', limit = 50) {
+async function listScans(userId, shelf = 'all', limit = 50) {
   const lim = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 100);
 
   let rows;
@@ -76,15 +78,16 @@ function listScans(userId, shelf = 'all', limit = 50) {
     rows = selectByShelfStmt.all(userId, shelf, lim);
   }
 
-  return rows.map(rowToScan);
+  return enrichListWithPhotoUrls(rows.map(rowToScan));
 }
 
-function getScanById(scanId, userId) {
+async function getScanById(scanId, userId) {
   const row = selectByIdStmt.get(scanId, userId);
-  return row ? rowToScan(row) : null;
+  if (!row) return null;
+  return enrichWithPhotoUrl(rowToScan(row));
 }
 
-function updateShelf(scanId, userId, shelf) {
+async function updateShelf(scanId, userId, shelf) {
   if (!VALID_SHELVES.includes(shelf)) {
     const err = new Error('bad_shelf');
     err.code = 'bad_shelf';
@@ -122,11 +125,31 @@ function rowToScan(row) {
     summary: row.summary,
     ingredients,
     rawInci: row.raw_inci,
-    photoPath: row.photo_path,
+    photoKey: row.photo_key,
     shelf: row.shelf,
     profileSnapshot,
     createdAt: row.created_at
   };
+}
+
+/**
+ * Добавляет presigned photoUrl к одному скану (если есть photoKey).
+ */
+async function enrichWithPhotoUrl(scan) {
+  if (!scan) return scan;
+  if (scan.photoKey) {
+    scan.photoUrl = await s3.getPresignedUrl(scan.photoKey);
+  } else {
+    scan.photoUrl = null;
+  }
+  return scan;
+}
+
+/**
+ * Добавляет presigned photoUrl к списку сканов.
+ */
+async function enrichListWithPhotoUrls(list) {
+  return Promise.all(list.map(enrichWithPhotoUrl));
 }
 
 module.exports = { createScan, listScans, getScanById, updateShelf, deleteScan };

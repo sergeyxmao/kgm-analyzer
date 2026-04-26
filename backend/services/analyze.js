@@ -105,4 +105,4 @@ async function analyzeInci(userId, input) {
   }
 }
 
-module.exports = { analyzeInci };
+module.exports = { analyzeInci, buildAnalystPrompt: buildPrompt };

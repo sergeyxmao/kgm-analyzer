@@ -5,7 +5,7 @@
 
 ## Текущая поддержка
 - ✅ Текстовый ввод INCI (копипаст в поле).
-- ⏳ Фото — запланировано (нужна интеграция с S3 + vision-режим Gemini). Сейчас `Scanner.handleFile()` показывает тост «Анализ по фото скоро» и не запускает анализ.
+- ✅ Фото — поддерживается (vision-режим, S3 + AI). Подробности — `photo-analysis.md`.
 - ❌ Вне Telegram Mini App — сканер отключён (нет initData, нечем авторизоваться на бэке). Web/гость получают тост «Сканер доступен только в Telegram».
 
 ## Поток (текстовый режим)
@@ -25,6 +25,9 @@
 8. `App.refreshRecent()` перерисовывает главный экран (три последних скана).
 9. Пользователь жмёт «В мои» / «Хочу купить» → `Scanner.saveTo('mine' | 'wishlist')` → `Api.updateScanShelf(lastScanId, shelf)` → `PUT /api/scans/:id/shelf`.
 
+## Поток (фото-режим)
+End-to-end: камера → сжатие на клиенте (canvas, max 1024px, JPEG q=0.8) → multipart `POST /api/scans/full-photo` → бэк грузит фото в S3, зовёт AI с image-payload, пишет скан в БД с `photo_key` → ответ содержит `photoUrl` (presigned GET, 1 час). В каталоге у скана с `photoKey` рендерится миниатюра вместо иконки 🧴. Полное описание — `photo-analysis.md`.
+
 ## Ошибки
 - Любая ошибка в `/api/analyze` или `/api/scans` → карточка с текстом `err.payload.error` или `err.message`. Спиннер снимается в `finally`-ветке.
 - Частые коды: `gemini_timeout`, `gemini_http_429` (квота), `bad_ai_json`. Подробнее — `docs/technical/ai-analyze.md`.
@@ -36,10 +39,10 @@
 - БД: таблица `scans` (см. `backend/db/001-init.sql` + `002-add-profile-snapshot.sql`).
 
 ## Не реализовано в этом ТЗ
-- Анализ по фото (требует загрузки на S3 + vision-режим Gemini).
 - Кеширование результатов (один и тот же состав может анализироваться повторно).
 - Шеринг скана с другим пользователем.
 - Удаление скана из UI (эндпоинт `DELETE /api/scans/:id` есть, кнопки в UI нет).
 
 ## История изменений
 - 2026-04-24: Создан файл. Текстовый режим работает end-to-end (TG only).
+- 2026-04-26: Реализован фото-режим end-to-end через S3 + vision AI.
