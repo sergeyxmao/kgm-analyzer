@@ -84,6 +84,11 @@ CRUD для сканов. Всё защищено `requireTelegramAuth`. `POST` 
 
 Потребители: `frontend/index.html` (`Scanner.saveTo`, `Catalog.load`, `App.refreshRecent`), см. `docs/technical/scanner-flow.md`.
 
+### `POST /telegram/webhook/<secret>`
+Endpoint для Telegram webhook. Принимает обновления от Telegram API. Подробнее — `docs/technical/telegram-bot.md`.
+
+Не вызывается фронтендом. Не имеет защиты `requireTelegramAuth` — secret в URL играет роль пароля.
+
 ### Любой другой путь
 Ответ `404 Not Found`:
 ```json
@@ -97,6 +102,7 @@ CRUD для сканов. Всё защищено `requireTelegramAuth`. `POST` 
 |---|---|---|
 | `PORT` | Порт Express-сервера | `3001` |
 | `TG_BOT_TOKEN` | Токен Telegram-бота (для будущих ТЗ) | — |
+| `TG_WEBHOOK_SECRET` | 32-байт hex для пути webhook Telegram-бота | — |
 | `ADMIN_TG_ID` | Telegram ID администратора | `845707896` |
 | `DB_PATH` | Путь к SQLite-БД (для будущих ТЗ) | `./data/kudri.db` |
 
@@ -116,3 +122,4 @@ curl http://127.0.0.1:3001/health
 ## История изменений
 - 2026-04-24: Создан файл. Минимальный сервер с `/health` + 404/500 хендлерами.
 - 2026-04-26: Удалена переменная `GEMINI_API_KEY` — настройки AI переехали в таблицу `ai_agents`.
+- 2026-04-26: Подключён Telegram-бот через webhook. Добавлена переменная `TG_WEBHOOK_SECRET`.
