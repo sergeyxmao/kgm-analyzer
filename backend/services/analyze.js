@@ -1,9 +1,9 @@
 /**
  * КУДРИ · оркестрация анализа INCI.
- * Строит промпт с учётом профиля пользователя, вызывает Gemini, парсит результат.
+ * Строит промпт с учётом профиля пользователя, вызывает AI через роутер, парсит результат.
  */
 
-const gemini = require('./gemini');
+const aiRouter = require('./ai-router');
 const { getProfileByUserId } = require('./profiles');
 
 const GOAL_LABELS = {
@@ -64,23 +64,9 @@ function validateInput(input) {
   return { ok: true };
 }
 
-function buildParts(prompt, input) {
-  const parts = [{ text: prompt }];
-  if (input.type === 'image') {
-    let mime = 'image/jpeg';
-    let base64 = input.data;
-    const m = input.data.match(/^data:([^;]+);base64,(.+)$/);
-    if (m) { mime = m[1]; base64 = m[2]; }
-    parts.push({ inline_data: { mime_type: mime, data: base64 } });
-  } else {
-    parts.push({ text: 'СОСТАВ:\n' + input.data });
-  }
-  return parts;
-}
-
 /**
  * Анализирует INCI.
- * @returns { ok: true, result: <parsed JSON from Gemini> }
+ * @returns { ok: true, result: <parsed JSON from AI> }
  * @returns { ok: false, error: '<code>', detail?: string }
  */
 async function analyzeInci(userId, input) {
@@ -89,18 +75,27 @@ async function analyzeInci(userId, input) {
 
   const profile = getProfileByUserId(userId);
   const prompt = buildPrompt(profile);
-  const parts = buildParts(prompt, input);
+
+  const routerInput = { prompt };
+  if (input.type === 'image') {
+    let mime = 'image/jpeg';
+    let base64 = input.data;
+    const m = input.data.match(/^data:([^;]+);base64,(.+)$/);
+    if (m) { mime = m[1]; base64 = m[2]; }
+    routerInput.image = { mime, base64 };
+  } else {
+    routerInput.prompt = prompt + '\n\nСОСТАВ:\n' + input.data;
+  }
 
   let text;
   try {
-    text = await gemini.generate(parts, { temperature: 0.2, maxOutputTokens: 2048 });
+    text = await aiRouter.generate(routerInput, 'analyst');
   } catch (err) {
-    return { ok: false, error: err.message, detail: err.detail };
+    return { ok: false, error: err.code || err.message, detail: err.detail };
   }
 
   try {
     const result = JSON.parse(text);
-    // Минимальная валидация формы ответа Gemini
     if (!result.verdict || !result.verdictTitle) {
       return { ok: false, error: 'bad_ai_response' };
     }
