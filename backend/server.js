@@ -15,6 +15,7 @@ const { getProfileByUserId, upsertProfile } = require('./services/profiles');
 const { analyzeInci } = require('./services/analyze');
 const scans = require('./services/scans');
 const requireTelegramAuth = require('./middleware/requireTelegramAuth');
+const { getWebhookHandler } = require('./bot');
 
 const PORT = parseInt(process.env.PORT, 10) || 3001;
 const HOST = '127.0.0.1';
@@ -168,6 +169,10 @@ app.delete('/api/scans/:id', requireTelegramAuth, (req, res) => {
     res.status(500).json({ error: 'delete_failed' });
   }
 });
+
+// Telegram webhook. Path содержит секрет из .env, поэтому маршрут не угадать извне.
+// Telegraf сам парсит JSON-тело и сам валидирует путь.
+app.use(getWebhookHandler());
 
 // Админ-роуты (CRUD для AI-агентов). Все эндпоинты требуют is_admin=1.
 app.use('/api/admin', require('./routes/admin'));
