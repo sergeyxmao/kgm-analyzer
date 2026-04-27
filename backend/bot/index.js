@@ -8,6 +8,7 @@
  */
 
 const { Telegraf } = require('telegraf');
+const { log } = require('../services/logger');
 
 const BOT_TOKEN = process.env.TG_BOT_TOKEN;
 const WEBHOOK_SECRET = process.env.TG_WEBHOOK_SECRET;
@@ -20,10 +21,10 @@ const WELCOME_TEXT = `Привет! Это КУДРИ ✨
 Просто открой приложение, ответь на пару вопросов про свои волосы — и сможешь сканировать любое средство, чтобы узнать, подходит ли оно тебе.`;
 
 if (!BOT_TOKEN) {
-  console.warn('[bot] TG_BOT_TOKEN is not set — bot will not work');
+  log.warn(null, '[bot]', 'TG_BOT_TOKEN is not set — bot will not work');
 }
 if (!WEBHOOK_SECRET) {
-  console.warn('[bot] TG_WEBHOOK_SECRET is not set — bot webhook will not be mounted');
+  log.warn(null, '[bot]', 'TG_WEBHOOK_SECRET is not set — bot webhook will not be mounted');
 }
 
 // placeholder-токен чтобы конструктор не падал при импорте без .env
@@ -44,7 +45,7 @@ bot.command('start', async (ctx) => {
       }
     });
   } catch (err) {
-    console.error('[bot] /start failed:', err.message);
+    log.error(null, '[bot]', err);
   }
 });
 

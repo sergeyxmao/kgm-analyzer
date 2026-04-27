@@ -32,6 +32,8 @@ curl -s "https://api.telegram.org/bot$TOKEN/deleteWebhook"
 ## Безопасность
 Путь webhook содержит 32-байтный секрет. Без знания секрета внешний адресат не может слать поддельные обновления — отвечать им будет 404 (потому что telegraf не распознает путь). Секрет хранится только в `.env` на сервере, в коде/доках/git его нет.
 
+Webhook-секрет в URL маскируется в логах: пишется `/telegram/webhook/[secret]` вместо реального значения. См. `docs/technical/logging.md`.
+
 ## Настройки
 - `TG_BOT_TOKEN` (`backend/.env`) — токен от BotFather.
 - `TG_WEBHOOK_SECRET` (`backend/.env`) — 32-байтный hex для пути webhook.

@@ -6,6 +6,7 @@
 const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const crypto = require('crypto');
+const { log } = require('./logger');
 
 const ENDPOINT = process.env.S3_ENDPOINT;
 const BUCKET = process.env.S3_BUCKET;
@@ -14,7 +15,7 @@ const SECRET_KEY = process.env.S3_SECRET_KEY;
 const PHOTO_PREFIX = process.env.S3_PHOTO_PREFIX || 'kudri-photos/';
 
 if (!ENDPOINT || !BUCKET || !ACCESS_KEY || !SECRET_KEY) {
-  console.warn('[s3] S3_* env vars not fully set — photo features will fail');
+  log.warn(null, '[s3]', 'S3_* env vars not fully set — photo features will fail');
 }
 
 const client = new S3Client({

@@ -19,6 +19,7 @@ const s3 = require('./services/s3');
 const aiRouter = require('./services/ai-router');
 const requireTelegramAuth = require('./middleware/requireTelegramAuth');
 const { getWebhookHandler } = require('./bot');
+const { log } = require('./services/logger');
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -30,6 +31,8 @@ const HOST = '127.0.0.1';
 
 const app = express();
 app.disable('x-powered-by');
+app.use(log.requestId);
+app.use(log.access);
 app.use(express.json({ limit: '10mb' }));
 
 // Health-check — используется для мониторинга и подтверждения что сервис жив
@@ -54,7 +57,7 @@ app.get('/db-status', (req, res) => {
       counts: countRows()
     });
   } catch (err) {
-    console.error('[db-status]', err);
+    log.error(req, '[db-status]', err);
     res.status(500).json({ status: 'error', error: err.message });
   }
 });
@@ -81,7 +84,7 @@ app.get('/api/profile', requireTelegramAuth, (req, res) => {
     const profile = getProfileByUserId(req.user.id);
     res.json({ profile });
   } catch (err) {
-    console.error('[GET /api/profile]', err);
+    log.error(req, '[GET /api/profile]', err);
     res.status(500).json({ error: 'profile_read_failed' });
   }
 });
@@ -95,7 +98,7 @@ app.put('/api/profile', requireTelegramAuth, (req, res) => {
     }
     res.json({ profile: result.profile });
   } catch (err) {
-    console.error('[PUT /api/profile]', err);
+    log.error(req, '[PUT /api/profile]', err);
     res.status(500).json({ error: 'profile_write_failed' });
   }
 });
@@ -113,7 +116,7 @@ app.post('/api/analyze', requireTelegramAuth, async (req, res) => {
     }
     res.json(out.result);
   } catch (err) {
-    console.error('[POST /api/analyze]', err);
+    log.error(req, '[POST /api/analyze]', err);
     res.status(500).json({ error: 'analyze_failed' });
   }
 });
@@ -127,7 +130,7 @@ app.post('/api/scans', requireTelegramAuth, async (req, res) => {
     res.status(201).json({ scan });
   } catch (err) {
     if (err.code === 'bad_verdict') return res.status(400).json({ error: err.code });
-    console.error('[POST /api/scans]', err);
+    log.error(req, '[POST /api/scans]', err);
     res.status(500).json({ error: 'create_failed' });
   }
 });
@@ -141,7 +144,7 @@ app.get('/api/scans', requireTelegramAuth, async (req, res) => {
     res.json({ scans: list });
   } catch (err) {
     if (err.code === 'bad_shelf') return res.status(400).json({ error: err.code });
-    console.error('[GET /api/scans]', err);
+    log.error(req, '[GET /api/scans]', err);
     res.status(500).json({ error: 'list_failed' });
   }
 });
@@ -159,7 +162,7 @@ app.put('/api/scans/:id/shelf', requireTelegramAuth, async (req, res) => {
     res.json({ scan });
   } catch (err) {
     if (err.code === 'bad_shelf') return res.status(400).json({ error: err.code });
-    console.error('[PUT /api/scans/:id/shelf]', err);
+    log.error(req, '[PUT /api/scans/:id/shelf]', err);
     res.status(500).json({ error: 'update_failed' });
   }
 });
@@ -173,7 +176,7 @@ app.delete('/api/scans/:id', requireTelegramAuth, (req, res) => {
     if (!ok) return res.status(404).json({ error: 'not_found' });
     res.json({ ok: true });
   } catch (err) {
-    console.error('[DELETE /api/scans/:id]', err);
+    log.error(req, '[DELETE /api/scans/:id]', err);
     res.status(500).json({ error: 'delete_failed' });
   }
 });
@@ -227,7 +230,7 @@ app.post('/api/scans/full-photo', requireTelegramAuth, upload.single('photo'), a
 
     res.status(201).json({ scan });
   } catch (err) {
-    console.error('[POST /api/scans/full-photo]', err);
+    log.error(req, '[POST /api/scans/full-photo]', err);
     res.status(500).json({ error: 'photo_scan_failed' });
   }
 });
@@ -246,10 +249,10 @@ app.use((req, res) => {
 
 // Обработчик ошибок последней инстанции — чтобы сервер не падал на неожиданностях
 app.use((err, req, res, next) => {
-  console.error('[ERROR]', err);
+  log.error(req, '[unhandled]', err);
   res.status(500).json({ error: 'Internal server error' });
 });
 
 app.listen(PORT, HOST, () => {
-  console.log(`[kudri-api] listening on ${HOST}:${PORT}`);
+  log.info(null, '[startup]', `listening on ${HOST}:${PORT}`);
 });

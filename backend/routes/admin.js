@@ -13,6 +13,7 @@ const express = require('express');
 const requireTelegramAuth = require('../middleware/requireTelegramAuth');
 const requireAdmin = require('../middleware/requireAdmin');
 const agents = require('../services/ai-agents');
+const { log } = require('../services/logger');
 
 const router = express.Router();
 
@@ -24,7 +25,7 @@ router.get('/agents', (req, res) => {
   try {
     res.json({ agents: agents.listAgents() });
   } catch (err) {
-    console.error('[GET /api/admin/agents]', err);
+    log.error(req, '[GET /api/admin/agents]', err);
     res.status(500).json({ error: 'internal_error' });
   }
 });
@@ -39,7 +40,7 @@ router.get('/agents/:id', (req, res) => {
     if (!agent) return res.status(404).json({ error: 'not_found' });
     res.json({ agent });
   } catch (err) {
-    console.error('[GET /api/admin/agents/:id]', err);
+    log.error(req, '[GET /api/admin/agents/:id]', err);
     res.status(500).json({ error: 'internal_error' });
   }
 });
@@ -50,7 +51,7 @@ router.post('/agents', (req, res) => {
     const agent = agents.createAgent(req.body || {});
     res.status(201).json({ agent });
   } catch (err) {
-    return sendServiceError(res, err, '[POST /api/admin/agents]');
+    return sendServiceError(req, res, err, '[POST /api/admin/agents]');
   }
 });
 
@@ -64,7 +65,7 @@ router.put('/agents/:id', (req, res) => {
     if (!agent) return res.status(404).json({ error: 'not_found' });
     res.json({ agent });
   } catch (err) {
-    return sendServiceError(res, err, '[PUT /api/admin/agents/:id]');
+    return sendServiceError(req, res, err, '[PUT /api/admin/agents/:id]');
   }
 });
 
@@ -78,12 +79,12 @@ router.delete('/agents/:id', (req, res) => {
     if (!ok) return res.status(404).json({ error: 'not_found' });
     res.status(204).send();
   } catch (err) {
-    console.error('[DELETE /api/admin/agents/:id]', err);
+    log.error(req, '[DELETE /api/admin/agents/:id]', err);
     res.status(500).json({ error: 'internal_error' });
   }
 });
 
-function sendServiceError(res, err, tag) {
+function sendServiceError(req, res, err, tag) {
   if (err && err.code === 'validation') {
     const body = { error: 'validation', field: err.field };
     if (err.reason) body.reason = err.reason;
@@ -92,7 +93,7 @@ function sendServiceError(res, err, tag) {
   if (err && err.code === 'conflict') {
     return res.status(409).json({ error: 'conflict', field: err.field });
   }
-  console.error(tag, err);
+  log.error(req, tag, err);
   return res.status(500).json({ error: 'internal_error' });
 }
 
