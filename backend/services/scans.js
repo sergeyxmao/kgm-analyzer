@@ -3,6 +3,7 @@
  * Все операции привязаны к user_id — пользователь видит только свои сканы.
  */
 
+const crypto = require('crypto');
 const { db } = require('./db');
 const s3 = require('./s3');
 
@@ -32,6 +33,14 @@ const updateShelfStmt = db.prepare(
 
 const deleteStmt = db.prepare(
   `DELETE FROM scans WHERE id = ? AND user_id = ?`
+);
+
+const setShareTokenStmt = db.prepare(
+  `UPDATE scans SET share_token = ? WHERE id = ? AND user_id = ?`
+);
+
+const selectByShareTokenStmt = db.prepare(
+  `SELECT * FROM scans WHERE share_token = ?`
 );
 
 /**
@@ -126,6 +135,7 @@ function rowToScan(row) {
     ingredients,
     rawInci: row.raw_inci,
     photoKey: row.photo_key,
+    shareToken: row.share_token,
     shelf: row.shelf,
     profileSnapshot,
     createdAt: row.created_at
@@ -152,4 +162,46 @@ async function enrichListWithPhotoUrls(list) {
   return Promise.all(list.map(enrichWithPhotoUrl));
 }
 
-module.exports = { createScan, listScans, getScanById, updateShelf, deleteScan };
+/**
+ * Генерирует или возвращает существующий share_token для скана. Идемпотентно.
+ * Возвращает { token } или null если скан не найден / не принадлежит юзеру.
+ */
+async function createShareToken(scanId, userId) {
+  const scan = selectByIdStmt.get(scanId, userId);
+  if (!scan) return null;
+  if (scan.share_token) return { token: scan.share_token };
+  const token = crypto.randomUUID();
+  setShareTokenStmt.run(token, scanId, userId);
+  return { token };
+}
+
+/**
+ * Удаляет токен у скана (NULL). Возвращает true если что-то изменилось.
+ */
+async function revokeShareToken(scanId, userId) {
+  const result = setShareTokenStmt.run(null, scanId, userId);
+  return result.changes > 0;
+}
+
+/**
+ * Получить скан по публичному токену. Возвращает скан с photoUrl или null.
+ * НЕ требует userId — это публичный доступ.
+ */
+async function getScanByShareToken(token) {
+  if (!token) return null;
+  const row = selectByShareTokenStmt.get(token);
+  if (!row) return null;
+  const scan = rowToScan(row);
+  return enrichWithPhotoUrl(scan);
+}
+
+module.exports = {
+  createScan,
+  listScans,
+  getScanById,
+  updateShelf,
+  deleteScan,
+  createShareToken,
+  revokeShareToken,
+  getScanByShareToken
+};
