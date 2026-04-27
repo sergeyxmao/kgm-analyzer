@@ -1,7 +1,7 @@
 # AI-агенты — CRUD админ-API
 
 ## Описание
-Управление пулом AI-провайдеров (Gemini, OpenAI, DeepSeek, Anthropic), через которые идёт анализ INCI и OCR. Позволяет админу добавлять/редактировать/удалять агентов без деплоя: URL эндпоинта, API-ключ, модель, приоритет, активность, произвольные параметры. Используется будущим ai-router'ом для выбора провайдера по роли (`analyst` / `ocr` / `both`) и priority.
+Управление пулом AI-провайдеров (Gemini, OpenAI, DeepSeek, Anthropic), через которые идёт анализ INCI и OCR. Позволяет админу добавлять/редактировать/удалять агентов без деплоя: URL эндпоинта, API-ключ, модель, приоритет, активность, произвольные параметры. Используется ai-router'ом для выбора провайдера по роли (`analyst` / `ocr` / `both` / `image_search`) и priority.
 
 ## Расположение файлов
 - `backend/services/ai-agents.js` — CRUD + валидация + конвертация row↔agent.
@@ -17,7 +17,7 @@ CREATE TABLE ai_agents (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
   name         TEXT    NOT NULL UNIQUE,
   provider     TEXT    NOT NULL CHECK (provider IN ('gemini', 'openai', 'deepseek', 'anthropic')),
-  role         TEXT    NOT NULL CHECK (role IN ('analyst', 'ocr', 'both')),
+  role         TEXT    NOT NULL CHECK (role IN ('analyst', 'ocr', 'both', 'image_search')),
   endpoint     TEXT    NOT NULL,
   api_key      TEXT    NOT NULL,
   model        TEXT    NOT NULL,
@@ -54,6 +54,7 @@ CREATE INDEX idx_ai_agents_role_priority ON ai_agents(role, active, priority);
 - `analyst` — анализ INCI-составов.
 - `ocr` — распознавание текста с фото этикеток.
 - `both` — агент подходит для обеих задач (попадает в выборку `listActiveByRole('analyst')` и `listActiveByRole('ocr')`).
+- `image_search` — поиск фото товара по `brand + productName` (см. `product-image-finder.md`). Поддерживается только провайдером `gemini` (нужен tool `googleSearch`). В выборки `analyst` / `ocr` не попадает.
 
 ## API
 Все эндпоинты под `/api/admin/*` защищены связкой `requireTelegramAuth + requireAdmin`. Без валидного `X-Telegram-Init-Data` — `401 unauthorized`. С валидным, но не-админом — `403 not_admin`.
@@ -135,3 +136,4 @@ curl -X DELETE -H "X-Telegram-Init-Data: $INIT_DATA" https://api.elenadortman.st
 ## История изменений
 - 2026-04-24: Создано (вторая попытка после revert неудачной первой, см. PR #10 → коммит `d94d89c`). Первая попытка упала из-за расхождения выдуманной схемы с реальной; во второй схема сверена с prod до написания кода.
 - 2026-04-26: Добавлен UI в Mini App (см. [admin-ui.md](./admin-ui.md)). Удалён мёртвый код Gemini-ключа из эпохи GitHub Pages.
+- 2026-04-27: Добавлена роль `image_search` (миграция 008 расширяет CHECK-ограничение `ai_agents.role`). Используется фоновым поиском фото товара — см. `product-image-finder.md`.

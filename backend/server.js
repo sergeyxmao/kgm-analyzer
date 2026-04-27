@@ -17,6 +17,7 @@ const { analyzeInci, buildAnalystPrompt } = require('./services/analyze');
 const scans = require('./services/scans');
 const s3 = require('./services/s3');
 const aiRouter = require('./services/ai-router');
+const productImageFinder = require('./services/product-image-finder');
 const requireTelegramAuth = require('./middleware/requireTelegramAuth');
 const { getWebhookHandler } = require('./bot');
 const { log } = require('./services/logger');
@@ -268,22 +269,34 @@ app.post('/api/scans/full-photo', requireTelegramAuth, upload.single('photo'), a
     }
 
     // 3. Сохранение в БД
+    const brand = typeof result.brand === 'string' ? result.brand : null;
+    const productName = typeof result.productName === 'string' ? result.productName : null;
+    const productImageStatus = (brand && productName) ? 'pending' : null;
+
     const scan = await scans.createScan(req.user.id, {
       verdict: result.verdict,
       verdictTitle: result.verdictTitle,
       productType: result.productType,
-      brand: typeof result.brand === 'string' ? result.brand : null,
-      productName: typeof result.productName === 'string' ? result.productName : null,
+      brand,
+      productName,
       summary: result.summary,
       ingredients: result.ingredients,
       profileSnapshot: profile,
-      photoKey
+      photoKey,
+      productImageStatus
     });
 
     const brandConfidence = ['high', 'medium', 'low'].includes(result.brandConfidence)
       ? result.brandConfidence
       : null;
     res.status(201).json({ scan, brandConfidence });
+
+    // 4. Фоновый поиск фото товара (огнём-и-забыть). Не блокирует ответ.
+    if (brand && productName) {
+      setImmediate(() => {
+        productImageFinder.findAndSaveProductImage(scan.id, brand, productName);
+      });
+    }
   } catch (err) {
     log.error(req, '[POST /api/scans/full-photo]', err);
     res.status(500).json({ error: 'photo_scan_failed' });

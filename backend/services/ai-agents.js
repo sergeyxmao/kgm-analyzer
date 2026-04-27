@@ -12,7 +12,7 @@
 const { db } = require('./db');
 
 const PROVIDERS = ['gemini', 'openai', 'deepseek', 'anthropic'];
-const ROLES     = ['analyst', 'ocr', 'both'];
+const ROLES     = ['analyst', 'ocr', 'both', 'image_search'];
 const UPDATABLE_FIELDS = ['name', 'provider', 'role', 'endpoint', 'apiKey', 'model', 'priority', 'active', 'params'];
 
 const selectAllStmt = db.prepare(

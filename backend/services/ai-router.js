@@ -19,7 +19,7 @@ const MAX_DETAIL_LEN = 500;
 /**
  * Главный публичный метод.
  * @param {{ prompt: string, image?: { mime: string, base64: string } }} input
- * @param {string} role — 'analyst' | 'ocr' | 'both'
+ * @param {string} role — 'analyst' | 'ocr' | 'both' | 'image_search'
  * @returns {Promise<string>} — текстовый ответ модели
  */
 async function generate(input, role) {
@@ -172,4 +172,63 @@ async function readJson(res) {
   }
 }
 
-module.exports = { generate };
+/**
+ * Поиск фото товара через Gemini + tool googleSearch.
+ * Поддерживается ТОЛЬКО провайдер 'gemini' (другие → status='failed').
+ * Не бросает наружу — возвращает { url, status }, где
+ *   status ∈ 'found' | 'not_found' | 'failed'.
+ *
+ * @param {{ brand: string, productName: string }} args
+ * @returns {Promise<{ url: string|null, status: 'found'|'not_found'|'failed', reason?: string }>}
+ */
+async function findProductImage({ brand, productName }) {
+  const agents = agentsService.listActiveByRole('image_search');
+  if (agents.length === 0) return { url: null, status: 'not_found' };
+
+  const agent = agents[0];
+  if (agent.provider !== 'gemini') {
+    return { url: null, status: 'failed', reason: 'unsupported_provider' };
+  }
+
+  const prompt =
+    `Найди фотографию товара "${brand} ${productName}" с белым фоном или ` +
+    `с маркетплейса (wildberries, ozon, goldapple, letu, sephora). ` +
+    `Верни ТОЛЬКО прямую ссылку на изображение (jpg, png, webp), без markdown, без обёрток. ` +
+    `Если не нашёл подходящее — верни строку NOT_FOUND.`;
+
+  const body = {
+    contents: [{ parts: [{ text: prompt }] }],
+    tools: [{ googleSearch: {} }]
+  };
+  if (agent.params) body.generationConfig = { ...agent.params };
+
+  const url = `${agent.endpoint}?key=${agent.apiKey}`;
+  let res;
+  try {
+    res = await httpPostJson(url, {}, body);
+  } catch (err) {
+    log.warn(null, '[ai-router]', `image_search ${agent.name} failed: ${err.code}`);
+    return { url: null, status: 'failed', reason: err.code };
+  }
+
+  let data;
+  try {
+    data = await readJson(res);
+  } catch (err) {
+    return { url: null, status: 'failed', reason: 'bad_response' };
+  }
+
+  const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text).filter(Boolean).join(' ');
+  if (typeof text !== 'string' || text.length === 0) {
+    return { url: null, status: 'failed', reason: 'bad_response' };
+  }
+
+  if (/NOT_FOUND/i.test(text)) return { url: null, status: 'not_found' };
+
+  const match = text.match(/https:\/\/[^\s'"<>)]+\.(?:jpg|jpeg|png|webp)(?:\?[^\s'"<>)]*)?/i);
+  if (!match) return { url: null, status: 'not_found' };
+
+  return { url: match[0], status: 'found' };
+}
+
+module.exports = { generate, findProductImage };
