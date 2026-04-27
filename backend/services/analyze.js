@@ -28,18 +28,28 @@ function buildPrompt(profile) {
 ЗАДАЧА:
 1. Прочитай INCI-состав (с фото или текста)
 2. Определи тип средства (шампунь, кондиционер, маска, гель, несмывашка...)
-3. Оцени по принципам КГМ для ИМЕННО этого профиля
-4. Верни СТРОГО JSON в таком формате (без markdown, без \`\`\`):
+3. Если на фото видна упаковка с надписями — извлеки название бренда (производителя) и точное название товара.
+4. Оцени по принципам КГМ для ИМЕННО этого профиля
+5. Верни СТРОГО JSON в таком формате (без markdown, без \`\`\`):
 
 {
   "verdict": "good" | "warn" | "bad",
   "verdictTitle": "Подходит" | "С оговорками" | "Не подходит",
   "productType": "тип средства",
+  "brand": "название бренда или null если не видно",
+  "productName": "название товара или null если не видно",
+  "brandConfidence": "high" | "medium" | "low",
   "summary": "1-2 предложения почему",
   "ingredients": [
     {"name": "название ингредиента", "status": "good"|"warn"|"bad", "note": "роль и почему такая оценка для ЭТОГО профиля"}
   ]
 }
+
+Правила для brand / productName / brandConfidence:
+- "high" — бренд и название чётко читаются и узнаваемы.
+- "medium" — только частично читаются или неясно где бренд а где название.
+- "low" — на фото нет упаковки, нет читаемого текста, или только состав.
+- Если ввод текстовый (без фото) — brand и productName всегда null, brandConfidence не указывай.
 
 Анализируй ТОЛЬКО ключевые ингредиенты (5-10 самых важных). Будь конкретна с учётом профиля. Если силикон — для каких пористостей это норм а для каких нет. Если сульфат — стоит ли его этому типу головы.`;
 }
@@ -98,6 +108,21 @@ async function analyzeInci(userId, input) {
     const result = JSON.parse(text);
     if (!result.verdict || !result.verdictTitle) {
       return { ok: false, error: 'bad_ai_response' };
+    }
+    if (input.type === 'image') {
+      if (result.brand !== undefined && result.brand !== null && typeof result.brand !== 'string') {
+        result.brand = null;
+      }
+      if (result.productName !== undefined && result.productName !== null && typeof result.productName !== 'string') {
+        result.productName = null;
+      }
+      if (result.brandConfidence && !['high', 'medium', 'low'].includes(result.brandConfidence)) {
+        delete result.brandConfidence;
+      }
+    } else {
+      result.brand = null;
+      result.productName = null;
+      delete result.brandConfidence;
     }
     return { ok: true, result };
   } catch {

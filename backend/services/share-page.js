@@ -45,6 +45,15 @@ const GOAL_LABELS = {
   scalp: 'кожа головы'
 };
 
+function formatScanTitle(scan) {
+  const brand = (scan.brand || '').trim();
+  const name = (scan.productName || scan.product_name || '').trim();
+  if (brand && name) return `${brand} · ${name}`;
+  if (brand) return brand;
+  if (name) return name;
+  return 'Бренд не определён';
+}
+
 function escape(s) {
   if (s === null || s === undefined) return '';
   return String(s)
@@ -151,12 +160,13 @@ const HEAD_FONTS = `
 function renderSharePage(scan) {
   const verdict = ['good', 'warn', 'bad'].includes(scan.verdict) ? scan.verdict : 'warn';
   const verdictLabel = scan.verdictTitle || VERDICT_LABEL[verdict];
-  const productType = scan.productType || 'Средство';
+  const title = formatScanTitle(scan);
+  const productType = scan.productType || '';
   const summary = scan.summary || '';
   const photoUrl = scan.photoUrl || '';
   const profileLine = describeProfile(scan.profileSnapshot);
 
-  const ogTitle = `${verdictLabel} · ${productType}`;
+  const ogTitle = `${verdictLabel} · ${title}`;
   const ogDesc = summary || 'Анализ INCI для кудрявых волос — КУДРИ';
 
   const ogImageMeta = photoUrl
@@ -169,7 +179,7 @@ function renderSharePage(scan) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
 <meta name="theme-color" content="#FFE8DC">
-<title>${escape(productType)} · КУДРИ</title>
+<title>${escape(title)} · КУДРИ</title>
 <meta name="description" content="${escape(ogDesc)}">
 <meta property="og:title" content="${escape(ogTitle)}">
 <meta property="og:description" content="${escape(ogDesc)}">
@@ -191,7 +201,7 @@ ${HEAD_FONTS}
         <div class="verdict-icon">${VERDICT_ICON[verdict]}</div>
         <div>
           <div class="verdict-status">${escape(verdictLabel)}</div>
-          <div class="verdict-meta">${escape(productType)}</div>
+          <div class="verdict-meta">${escape(title)}${productType ? ` · ${escape(productType)}` : ''}</div>
         </div>
       </div>
       ${summary ? `<div class="verdict-summary">${escape(summary)}</div>` : ''}

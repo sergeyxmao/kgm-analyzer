@@ -11,8 +11,8 @@ const VALID_SHELVES = ['history', 'mine', 'wishlist', 'rejected'];
 const VALID_VERDICTS = ['good', 'warn', 'bad'];
 
 const insertStmt = db.prepare(`
-  INSERT INTO scans (user_id, raw_inci, verdict, verdict_title, product_type, summary, ingredients, profile_snapshot, photo_key, shelf)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'history')
+  INSERT INTO scans (user_id, raw_inci, verdict, verdict_title, product_type, brand, product_name, summary, ingredients, profile_snapshot, photo_key, shelf)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'history')
 `);
 
 const selectByIdStmt = db.prepare(
@@ -39,6 +39,10 @@ const setShareTokenStmt = db.prepare(
   `UPDATE scans SET share_token = ? WHERE id = ? AND user_id = ?`
 );
 
+const updateBrandStmt = db.prepare(
+  `UPDATE scans SET brand = ?, product_name = ? WHERE id = ? AND user_id = ?`
+);
+
 const selectByShareTokenStmt = db.prepare(
   `SELECT * FROM scans WHERE share_token = ?`
 );
@@ -59,6 +63,8 @@ async function createScan(userId, data) {
     data.verdict,
     data.verdictTitle ?? null,
     data.productType ?? null,
+    data.brand ?? null,
+    data.productName ?? null,
     data.summary ?? null,
     data.ingredients ? JSON.stringify(data.ingredients) : null,
     data.profileSnapshot ? JSON.stringify(data.profileSnapshot) : null,
@@ -66,6 +72,36 @@ async function createScan(userId, data) {
   );
 
   return getScanById(info.lastInsertRowid, userId);
+}
+
+/**
+ * Обновляет бренд и название товара. Возвращает обновлённый скан или null.
+ * Триминг + пустая строка → null. Длина каждого поля ≤ 200 символов.
+ */
+async function updateScanBrand(scanId, userId, { brand, productName }) {
+  const norm = (v) => {
+    if (v === null || v === undefined) return null;
+    if (typeof v !== 'string') {
+      const err = new Error('bad_field');
+      err.code = 'bad_field';
+      throw err;
+    }
+    const t = v.trim();
+    if (!t) return null;
+    if (t.length > 200) {
+      const err = new Error('field_too_long');
+      err.code = 'field_too_long';
+      throw err;
+    }
+    return t;
+  };
+
+  const b = norm(brand);
+  const n = norm(productName);
+
+  const result = updateBrandStmt.run(b, n, scanId, userId);
+  if (result.changes === 0) return null;
+  return getScanById(scanId, userId);
 }
 
 /**
@@ -129,6 +165,8 @@ function rowToScan(row) {
     id: row.id,
     userId: row.user_id,
     productType: row.product_type,
+    brand: row.brand,
+    productName: row.product_name,
     verdict: row.verdict,
     verdictTitle: row.verdict_title,
     summary: row.summary,
@@ -200,6 +238,7 @@ module.exports = {
   listScans,
   getScanById,
   updateShelf,
+  updateScanBrand,
   deleteScan,
   createShareToken,
   revokeShareToken,

@@ -1548,6 +1548,9 @@ const Api = {
   updateScanShelf(id, shelf) {
     return this.request(`/api/scans/${id}/shelf`, { method: 'PUT', body: { shelf } });
   },
+  updateScanBrand(id, brand, productName) {
+    return this.request(`/api/scans/${id}/brand`, { method: 'PATCH', body: { brand, productName } });
+  },
   deleteScan(id) {
     return this.request(`/api/scans/${id}`, { method: 'DELETE' });
   },
@@ -2083,6 +2086,8 @@ const Scanner = {
   mode: 'photo',
   currentImage: null,
   lastScanId: null,
+  lastScan: null,
+  lastBrandConfidence: null,
 
   setMode(m) {
     this.mode = m;
@@ -2174,12 +2179,17 @@ const Scanner = {
       if (!res.ok) throw Object.assign(new Error('http_' + res.status), { payload: data });
 
       this.lastScanId = data.scan.id;
+      this.lastScan = data.scan;
+      this.lastBrandConfidence = data.brandConfidence || null;
       this.currentPhotoBlob = null;
       result.innerHTML = '';
       this.renderResult({
         verdict: data.scan.verdict,
         verdictTitle: data.scan.verdictTitle,
         productType: data.scan.productType,
+        brand: data.scan.brand,
+        productName: data.scan.productName,
+        brandConfidence: data.brandConfidence,
         summary: data.scan.summary,
         ingredients: data.scan.ingredients
       }, { type: 'image' });
@@ -2224,6 +2234,8 @@ const Scanner = {
         verdict: verdict.verdict,
         verdictTitle: verdict.verdictTitle,
         productType: verdict.productType,
+        brand: input.type === 'image' ? (verdict.brand ?? null) : null,
+        productName: input.type === 'image' ? (verdict.productName ?? null) : null,
         summary: verdict.summary,
         ingredients: verdict.ingredients,
         profileSnapshot: profile
@@ -2231,7 +2243,9 @@ const Scanner = {
 
       document.getElementById('loader')?.remove();
       this.lastScanId = scan.id; // для кнопок полок
-      this.renderResult(verdict, input);
+      this.lastScan = scan;
+      this.lastBrandConfidence = input.type === 'image' ? (verdict.brandConfidence || null) : null;
+      this.renderResult({ ...verdict, brand: scan.brand, productName: scan.productName }, input);
       App.refreshRecent();
     } catch (err) {
       document.getElementById('loader')?.remove();
@@ -2254,6 +2268,11 @@ const Scanner = {
     const result = document.getElementById('scan-result');
     const cls = data.verdict;
     const icon = { good: '✓', warn: '!', bad: '✗' }[cls];
+    const isPhoto = input?.type === 'image';
+    const showConfirm = isPhoto && (!data.brand || data.brandConfidence === 'medium' || data.brandConfidence === 'low');
+
+    const titleParts = [data.brand, data.productName].filter(s => (s || '').trim());
+    const title = titleParts.length ? titleParts.join(' · ') : (data.productType || '');
 
     let html = `
       <div class="verdict-card ${cls}">
@@ -2261,10 +2280,31 @@ const Scanner = {
           <div class="verdict-icon">${icon}</div>
           <div>
             <div class="verdict-status">${data.verdictTitle.replace(/^(\S+)/, '<em>$1</em>')}</div>
-            <div class="verdict-meta">${data.productType || ''}</div>
+            <div class="verdict-meta">${title}${data.productType && titleParts.length ? ' · ' + data.productType : ''}</div>
           </div>
         </div>
         <div class="verdict-summary">${data.summary || ''}</div>
+
+        ${showConfirm ? `
+          <div class="brand-confirm" id="brand-confirm" style="margin:14px 0;padding:14px;border-radius:var(--r-md);background:var(--bone)">
+            <div style="font-weight:600;margin-bottom:6px">🤔 Угадал?</div>
+            <div style="font-size:13px;color:var(--ink-soft);margin-bottom:10px" id="brand-confirm-text">
+              ${data.brand
+                ? `Это <em>${(data.brand || '').replace(/[<>"']/g, '')}</em>${data.productName ? ` · <em>${(data.productName || '').replace(/[<>"']/g, '')}</em>` : ''}?`
+                : 'Не разглядел упаковку, можешь подсказать бренд и название?'}
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="action-btn" onclick="Scanner.confirmBrand()">✅ Да, всё верно</button>
+              <button class="action-btn" onclick="Scanner.editBrand()">✏️ Поправить</button>
+              <button class="action-btn" onclick="Scanner.clearBrand()">❌ Не определять</button>
+            </div>
+            <div id="brand-edit-form" style="display:none;margin-top:10px">
+              <input type="text" id="brand-input" placeholder="Бренд" maxlength="200" style="display:block;width:100%;padding:10px;border:1px solid var(--sand);border-radius:var(--r-sm);margin-bottom:8px;font:inherit;background:white">
+              <input type="text" id="brand-product-name-input" placeholder="Название товара" maxlength="200" style="display:block;width:100%;padding:10px;border:1px solid var(--sand);border-radius:var(--r-sm);margin-bottom:8px;font:inherit;background:white">
+              <button class="btn btn-primary" onclick="Scanner.saveBrandEdit()">Сохранить</button>
+            </div>
+          </div>
+        ` : ''}
 
         <div class="ingredient-list">
           ${(data.ingredients || []).map(ing => `
@@ -2292,6 +2332,51 @@ const Scanner = {
     `;
 
     document.getElementById('scan-result').insertAdjacentHTML('beforeend', html);
+  },
+
+  confirmBrand() {
+    const block = document.getElementById('brand-confirm');
+    if (block) block.style.display = 'none';
+  },
+
+  editBrand() {
+    const form = document.getElementById('brand-edit-form');
+    if (!form) return;
+    document.getElementById('brand-input').value = (this.lastScan?.brand || '');
+    document.getElementById('brand-product-name-input').value = (this.lastScan?.productName || '');
+    form.style.display = 'block';
+  },
+
+  async saveBrandEdit() {
+    if (!this.lastScanId) return;
+    const brand = document.getElementById('brand-input').value;
+    const productName = document.getElementById('brand-product-name-input').value;
+    try {
+      const res = await Api.updateScanBrand(this.lastScanId, brand, productName);
+      if (this.lastScan) {
+        this.lastScan.brand = res.brand;
+        this.lastScan.productName = res.productName;
+      }
+      App.toast('Сохранено');
+      const block = document.getElementById('brand-confirm');
+      if (block) block.style.display = 'none';
+      App.refreshRecent();
+    } catch (err) {
+      App.toast('Не удалось сохранить');
+    }
+  },
+
+  async clearBrand() {
+    if (!this.lastScanId) return;
+    try {
+      await Api.updateScanBrand(this.lastScanId, null, null);
+      if (this.lastScan) { this.lastScan.brand = null; this.lastScan.productName = null; }
+      const block = document.getElementById('brand-confirm');
+      if (block) block.style.display = 'none';
+      App.refreshRecent();
+    } catch (err) {
+      App.toast('Не удалось сохранить');
+    }
   },
 
   async saveTo(shelf) {
@@ -2496,6 +2581,19 @@ const AdminAgents = {
 // ────────── ОСНОВНОЕ ПРИЛОЖЕНИЕ ──────────
 // ────────── КАТАЛОГ ──────────
 // Вкладки: все / мои / хочу / не подошло. Источник — GET /api/scans?shelf=...
+function formatScanTitle(scan) {
+  const brand = (scan.brand || '').trim();
+  const name = (scan.productName || scan.product_name || '').trim();
+  if (brand && name) return `${brand} · ${name}`;
+  if (brand) return brand;
+  if (name) return name;
+  return 'Бренд не определён';
+}
+
+function escapeHtmlAttr(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 const Catalog = {
   currentShelf: 'all',
 
@@ -2561,15 +2659,25 @@ const Catalog = {
           ? `<button class="action-btn" onclick="event.stopPropagation(); Catalog.copyShare(${s.id})" title="Копировать ссылку">📋</button>
              <button class="action-btn" onclick="event.stopPropagation(); Catalog.revokeShare(${s.id})" title="Удалить ссылку" style="color:var(--danger)">✕</button>`
           : `<button class="action-btn" onclick="event.stopPropagation(); Catalog.shareScan(${s.id})" title="Поделиться">🔗</button>`;
+        const editBtn = `<button class="action-btn" onclick="event.stopPropagation(); Catalog.editBrand(${s.id})" title="Редактировать бренд">✏️</button>`;
+        const sub = s.productType ? `${dStr} · ${s.shelf} · ${s.productType}` : `${dStr} · ${s.shelf}`;
         return `
-          <div class="recent-item">
+          <div class="recent-item" id="recent-item-${s.id}">
             ${iconHtml}
             <div class="recent-item-content">
-              <div class="recent-item-name">${s.productType || 'Средство'}</div>
-              <div class="recent-item-date">${dStr} · ${s.shelf}</div>
+              <div class="recent-item-name">${formatScanTitle(s)}</div>
+              <div class="recent-item-date">${sub}</div>
+              <div class="brand-edit-inline" id="brand-edit-${s.id}" style="display:none;margin-top:8px">
+                <input type="text" id="brand-edit-${s.id}-brand" placeholder="Бренд" maxlength="200" value="${escapeHtmlAttr(s.brand)}" style="display:block;width:100%;padding:8px;border:1px solid var(--sand);border-radius:var(--r-sm);margin-bottom:6px;font:inherit;background:white">
+                <input type="text" id="brand-edit-${s.id}-name" placeholder="Название товара" maxlength="200" value="${escapeHtmlAttr(s.productName)}" style="display:block;width:100%;padding:8px;border:1px solid var(--sand);border-radius:var(--r-sm);margin-bottom:6px;font:inherit;background:white">
+                <div style="display:flex;gap:6px">
+                  <button class="action-btn" onclick="event.stopPropagation(); Catalog.saveBrandEdit(${s.id})">Сохранить</button>
+                  <button class="action-btn" onclick="event.stopPropagation(); Catalog.cancelBrandEdit(${s.id})">Отмена</button>
+                </div>
+              </div>
             </div>
             <span class="recent-item-badge ${verdictMap[s.verdict]}">${txtMap[s.verdict]}</span>
-            <div class="recent-item-share">${shareHtml}</div>
+            <div class="recent-item-share">${editBtn}${shareHtml}</div>
           </div>
         `;
       }).join('');
@@ -2611,6 +2719,29 @@ const Catalog = {
       await this.load(this.currentShelf);
     } catch (err) {
       App.toast('Не удалось отозвать');
+    }
+  },
+
+  editBrand(scanId) {
+    const form = document.getElementById(`brand-edit-${scanId}`);
+    if (form) form.style.display = 'block';
+  },
+
+  cancelBrandEdit(scanId) {
+    const form = document.getElementById(`brand-edit-${scanId}`);
+    if (form) form.style.display = 'none';
+  },
+
+  async saveBrandEdit(scanId) {
+    const brand = document.getElementById(`brand-edit-${scanId}-brand`).value;
+    const productName = document.getElementById(`brand-edit-${scanId}-name`).value;
+    try {
+      await Api.updateScanBrand(scanId, brand, productName);
+      App.toast('Сохранено');
+      await this.load(this.currentShelf);
+      App.refreshRecent();
+    } catch (err) {
+      App.toast('Не удалось сохранить');
     }
   },
 
@@ -2761,12 +2892,13 @@ const App = {
         const iconHtml = s.photoUrl
           ? `<div class="recent-item-icon" style="background:none;padding:0"><img src="${s.photoUrl}" alt=""></div>`
           : `<div class="recent-item-icon">🧴</div>`;
+        const sub = s.productType ? `${dStr} · ${s.productType}` : dStr;
         return `
           <div class="recent-item">
             ${iconHtml}
             <div class="recent-item-content">
-              <div class="recent-item-name">${s.productType || 'Средство'}</div>
-              <div class="recent-item-date">${dStr}</div>
+              <div class="recent-item-name">${formatScanTitle(s)}</div>
+              <div class="recent-item-date">${sub}</div>
             </div>
             <span class="recent-item-badge ${verdictMap[s.verdict]}">${txtMap[s.verdict]}</span>
           </div>

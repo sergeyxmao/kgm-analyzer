@@ -94,8 +94,13 @@ Vision-режим: фото → S3 → AI → запись в БД одним в
 
 **Ответ `201 Created`:**
 ```json
-{ "scan": { "id": 12, ..., "photoKey": "kudri-photos/scans/<uuid>.jpg", "photoUrl": "https://...?X-Amz-Signature=..." } }
+{
+  "scan": { "id": 12, ..., "brand": "Innersense", "productName": "Quiet Calm Curl Control", "photoKey": "kudri-photos/scans/<uuid>.jpg", "photoUrl": "https://...?X-Amz-Signature=..." },
+  "brandConfidence": "high" | "medium" | "low" | null
+}
 ```
+
+`brandConfidence` — отдельное поле верхнего уровня (не входит в объект `scan`). Используется фронтом, чтобы решить, показывать ли блок подтверждения «🤔 Угадал?». В текстовом режиме (`POST /api/scans` после `POST /api/analyze`) это поле не передаётся.
 
 **Ошибки:**
 | HTTP | `error` | Описание |
@@ -109,6 +114,31 @@ Vision-режим: фото → S3 → AI → запись в БД одним в
 | 500 | `photo_scan_failed` | Неожиданная серверная ошибка |
 
 Подробности — см. `photo-analysis.md`.
+
+### `PATCH /api/scans/:id/brand`
+Обновить бренд и название товара (только свой скан). Защищён `requireTelegramAuth`.
+
+**Тело:**
+```json
+{ "brand": "Innersense", "productName": "Quiet Calm Curl Control" }
+```
+
+Оба поля могут быть `null` или пустой строкой (трактуется как `null`). Триминг автоматический. Длина каждого поля ≤ 200 символов.
+
+**Ответ `200 OK`:**
+```json
+{ "ok": true, "brand": "Innersense", "productName": "Quiet Calm Curl Control" }
+```
+
+**Ошибки:**
+| HTTP | `error` | Описание |
+|---|---|---|
+| 400 | `bad_id` | `:id` не число |
+| 400 | `bad_field` | Поле передано не строкой и не `null` |
+| 400 | `field_too_long` | Длина `brand` или `productName` > 200 |
+| 404 | `not_found` | Скан не существует или не принадлежит пользователю |
+| 401 | `unauthorized` | Нет/невалидный заголовок |
+| 500 | `update_failed` | Неожиданная серверная ошибка |
 
 ### `POST /api/scans/:id/share`
 Создать или вернуть существующий публичный токен для шеринга. Идемпотентно. Защищён `requireTelegramAuth`. Подробнее — `share.md`.
@@ -165,6 +195,8 @@ Vision-режим: фото → S3 → AI → запись в БД одним в
 | `id` | number | PK из БД |
 | `userId` | number | FK на `users.id` |
 | `productType` | string \| null | «шампунь», «кондиционер», … |
+| `brand` | string \| null | Название бренда — извлекается AI из фото или редактируется вручную |
+| `productName` | string \| null | Точное название товара — извлекается AI из фото или редактируется вручную |
 | `verdict` | `'good'\|'warn'\|'bad'` | |
 | `verdictTitle` | string \| null | Читаемый лейбл вердикта |
 | `summary` | string \| null | 1–2 предложения |
@@ -188,3 +220,4 @@ Vision-режим: фото → S3 → AI → запись в БД одним в
 - 2026-04-24: Создан файл. CRUD endpoints, 4 полки, `profile_snapshot` прилетает миграцией 002.
 - 2026-04-26: Колонка `photo_path` → `photo_key` (миграция 004). Добавлен `POST /api/scans/full-photo`. В ответы добавлено поле `photoUrl` (presigned GET, 1 час).
 - 2026-04-27: Добавлены эндпоинты `POST /api/scans/:id/share` и `DELETE /api/scans/:id/share`. Поле `shareToken` в ответе. Подробности — `share.md`.
+- 2026-04-27: Добавлены поля `brand`, `productName` в scan-объект. Эндпоинт `PATCH /api/scans/:id/brand`. В ответе `POST /api/scans/full-photo` появилось поле `brandConfidence`.
