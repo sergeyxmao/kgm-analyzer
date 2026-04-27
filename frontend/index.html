@@ -833,6 +833,7 @@ input, select, textarea { font: inherit; color: inherit; }
 }
 
 .upload-zone {
+  display: block;
   border: 2px dashed var(--peach-300);
   border-radius: var(--r-lg);
   padding: 48px 24px;
@@ -1184,12 +1185,11 @@ input, select, textarea { font: inherit; color: inherit; }
   position: relative;
   border-radius: var(--r-md);
   overflow: hidden;
-  /* плавная анимация удаления */
-  max-height: 240px;
+  /* max-height ставится JS-ом перед удалением, чтобы анимировать сворачивание */
   transition: max-height 0.3s ease, margin 0.3s ease, opacity 0.25s ease;
 }
 .swipe-row.removing {
-  max-height: 0;
+  max-height: 0 !important;
   margin: 0;
   opacity: 0;
   pointer-events: none;
@@ -1207,8 +1207,15 @@ input, select, textarea { font: inherit; color: inherit; }
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.2px;
-  transition: background-color 0.15s ease;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
   border-radius: var(--r-md);
+  /* по умолчанию красная зона СКРЫТА — показываем только когда свайп активен */
+  opacity: 0;
+  pointer-events: none;
+}
+.swipe-row.swiping .swipe-action,
+.swipe-row.armed   .swipe-action {
+  opacity: 1;
 }
 .swipe-action svg {
   width: 18px;
@@ -1224,7 +1231,8 @@ input, select, textarea { font: inherit; color: inherit; }
 }
 .swipe-card {
   position: relative;
-  background: transparent;
+  z-index: 1;
+  /* НЕ трогаем background — пусть .recent-item красит белым */
   transform: translate3d(0, 0, 0);
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   touch-action: pan-y;
@@ -2989,11 +2997,9 @@ const Catalog = {
       const RATIO = 1.5;          // |dx| должен быть в 1.5 раза больше |dy|, чтобы считать жест горизонтальным
       const THRESHOLD = Math.max(100, card.offsetWidth * 0.4);
 
-      const reset = (animate = true) => {
-        card.classList.toggle('dragging', !animate);
-        card.style.transform = 'translate3d(0, 0, 0)';
-        action.classList.remove('armed');
-        armed = false;
+      const showActionVisible = (on) => {
+        row.classList.toggle('swiping', !!on);
+        if (!on) row.classList.remove('armed');
       };
 
       const cleanup = () => {
@@ -3014,7 +3020,6 @@ const Catalog = {
         startY = e.clientY;
         dx = 0;
         pointerId = e.pointerId;
-        card.classList.add('dragging');
       };
 
       const onMove = (e) => {
@@ -3025,14 +3030,16 @@ const Catalog = {
         if (!horizontal) {
           // мёртвая зона
           if (Math.abs(cdx) < DEAD && Math.abs(cdy) < DEAD) return;
+          // явный вертикаль — отдаём скроллу и не трогаем карточку
           if (Math.abs(cdy) > Math.abs(cdx)) {
-            // жест преимущественно вертикальный → отдаём скроллу
             cleanup();
-            card.classList.remove('dragging');
             return;
           }
+          // фиксируем горизонталь только при явно левом движении
           if (cdx < 0 && Math.abs(cdx) > Math.abs(cdy) * RATIO) {
             horizontal = true;
+            card.classList.add('dragging');
+            showActionVisible(true);
             try { card.setPointerCapture(pointerId); } catch (_) {}
           } else {
             return;
@@ -3040,20 +3047,39 @@ const Catalog = {
         }
 
         if (e.cancelable) e.preventDefault();
-        // только влево — слева направо игнорируем
+        // только влево; вправо — translateX(0)
         dx = Math.min(0, cdx);
         card.style.transform = `translate3d(${dx}px, 0, 0)`;
 
         const reachedNow = Math.abs(dx) >= THRESHOLD;
         if (reachedNow && !armed) {
           armed = true;
+          row.classList.add('armed');
           action.classList.add('armed');
           const hf = window.Telegram?.WebApp?.HapticFeedback;
           try { hf?.impactOccurred?.('medium'); } catch (_) {}
         } else if (!reachedNow && armed) {
           armed = false;
+          row.classList.remove('armed');
           action.classList.remove('armed');
         }
+      };
+
+      const snapBack = () => {
+        card.classList.remove('dragging');
+        card.style.transform = 'translate3d(0, 0, 0)';
+        armed = false;
+        action.classList.remove('armed');
+        // прячем красную зону ровно после того, как карточка вернулась
+        const onEnd = () => {
+          card.removeEventListener('transitionend', onEnd);
+          if (!card.style.transform || card.style.transform.includes('0px')) {
+            showActionVisible(false);
+          }
+        };
+        card.addEventListener('transitionend', onEnd);
+        // fallback на случай, если transitionend не сработает
+        setTimeout(() => showActionVisible(false), 320);
       };
 
       const onUp = (e) => {
@@ -3065,14 +3091,15 @@ const Catalog = {
         cleanup();
 
         if (!wasHorizontal) {
+          // тапа без свайпа — никакая красная зона не должна была показаться
           card.classList.remove('dragging');
+          showActionVisible(false);
           return;
         }
 
         card.classList.remove('dragging'); // вернуть transition
 
         if (Math.abs(finalDx) >= THRESHOLD) {
-          // оставляем карточку в свайпнутом положении на время модалки
           card.style.transform = `translate3d(${-THRESHOLD}px, 0, 0)`;
           openedAtThreshold = true;
           const scanId = Number(row.dataset.scanId);
@@ -3088,26 +3115,26 @@ const Catalog = {
             if (ok) {
               Catalog.performDelete(row, scanId);
             } else {
-              card.style.transform = 'translate3d(0, 0, 0)';
-              action.classList.remove('armed');
+              snapBack();
             }
           });
         } else {
-          card.style.transform = 'translate3d(0, 0, 0)';
-          action.classList.remove('armed');
+          snapBack();
         }
       };
 
       const onCancel = (e) => {
         if (!active) return;
         cleanup();
-        reset(true);
+        snapBack();
       };
 
-      card.addEventListener('pointerdown', onDown);
-      card.addEventListener('pointermove', onMove);
-      card.addEventListener('pointerup', onUp);
-      card.addEventListener('pointercancel', onCancel);
+      // События вешаем на ROW, чтобы кнопки внутри карточки не мешали:
+      // .closest('button, ...') в onDown отсекает интерактивные элементы.
+      row.addEventListener('pointerdown', onDown);
+      row.addEventListener('pointermove', onMove);
+      row.addEventListener('pointerup', onUp);
+      row.addEventListener('pointercancel', onCancel);
     });
   },
 
@@ -3116,15 +3143,20 @@ const Catalog = {
       await Api.deleteScan(scanId);
       const hf = window.Telegram?.WebApp?.HapticFeedback;
       try { hf?.notificationOccurred?.('success'); } catch (_) {}
-      row.classList.add('removing');
+      // фиксируем текущую высоту в px → следующий кадр ставит max-height: 0 → плавно сворачивается
+      const h = row.offsetHeight;
+      row.style.maxHeight = h + 'px';
+      // принудительный reflow
+      // eslint-disable-next-line no-unused-expressions
+      row.offsetHeight;
+      requestAnimationFrame(() => row.classList.add('removing'));
       setTimeout(() => {
         row.remove();
-        // если каталог опустел — перерисуем для empty-state
         const list = document.getElementById('catalog-list');
         if (list && !list.querySelector('.swipe-row')) {
           this.load(this.currentShelf);
         }
-      }, 320);
+      }, 340);
       App.toast('Удалено');
       App.refreshRecent();
     } catch (err) {
@@ -3133,6 +3165,7 @@ const Catalog = {
       const action = row.querySelector('.swipe-action');
       if (card) card.style.transform = 'translate3d(0, 0, 0)';
       if (action) action.classList.remove('armed');
+      row.classList.remove('swiping', 'armed');
       App.toast('Не удалось удалить');
     }
   }
