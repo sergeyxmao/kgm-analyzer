@@ -149,6 +149,27 @@ app.get('/api/scans', requireTelegramAuth, async (req, res) => {
   }
 });
 
+// PATCH /api/scans/:id/brand — обновить бренд и название товара (только свой скан)
+app.patch('/api/scans/:id/brand', requireTelegramAuth, async (req, res) => {
+  try {
+    const scanId = parseInt(req.params.id, 10);
+    if (!scanId) return res.status(400).json({ error: 'bad_id' });
+    const body = req.body || {};
+    const scan = await scans.updateScanBrand(scanId, req.user.id, {
+      brand: body.brand,
+      productName: body.productName
+    });
+    if (!scan) return res.status(404).json({ error: 'not_found' });
+    res.json({ ok: true, brand: scan.brand, productName: scan.productName });
+  } catch (err) {
+    if (err.code === 'bad_field' || err.code === 'field_too_long') {
+      return res.status(400).json({ error: err.code });
+    }
+    log.error(req, '[PATCH /api/scans/:id/brand]', err);
+    res.status(500).json({ error: 'update_failed' });
+  }
+});
+
 // PUT /api/scans/:id/shelf — переместить на полку
 app.put('/api/scans/:id/shelf', requireTelegramAuth, async (req, res) => {
   try {
@@ -251,13 +272,18 @@ app.post('/api/scans/full-photo', requireTelegramAuth, upload.single('photo'), a
       verdict: result.verdict,
       verdictTitle: result.verdictTitle,
       productType: result.productType,
+      brand: typeof result.brand === 'string' ? result.brand : null,
+      productName: typeof result.productName === 'string' ? result.productName : null,
       summary: result.summary,
       ingredients: result.ingredients,
       profileSnapshot: profile,
       photoKey
     });
 
-    res.status(201).json({ scan });
+    const brandConfidence = ['high', 'medium', 'low'].includes(result.brandConfidence)
+      ? result.brandConfidence
+      : null;
+    res.status(201).json({ scan, brandConfidence });
   } catch (err) {
     log.error(req, '[POST /api/scans/full-photo]', err);
     res.status(500).json({ error: 'photo_scan_failed' });
