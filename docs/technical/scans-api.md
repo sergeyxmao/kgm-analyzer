@@ -204,6 +204,8 @@ Vision-режим: фото → S3 → AI → запись в БД одним в
 | `rawInci` | string \| null | Исходный текст INCI, если анализ был по тексту |
 | `photoKey` | string \| null | S3-ключ фото в Beget Cloud Storage |
 | `photoUrl` | string \| null | Presigned GET URL на 1 час (генерируется при каждом запросе) |
+| `productImageUrl` | string \| null | Прямой URL фото товара, найденного фоновым поиском (см. `product-image-finder.md`) |
+| `productImageStatus` | string \| null | Статус поиска: `pending` / `found` / `not_found` / `failed`. `null` — поиск не запускался (нет brand/productName) |
 | `shareToken` | string \| null | UUID v4 публичной ссылки или `null` если скан приватный (см. `share.md`) |
 | `shelf` | `'history'\|'mine'\|'wishlist'\|'rejected'` | |
 | `profileSnapshot` | object \| null | Снимок профиля на момент анализа |
@@ -221,3 +223,4 @@ Vision-режим: фото → S3 → AI → запись в БД одним в
 - 2026-04-26: Колонка `photo_path` → `photo_key` (миграция 004). Добавлен `POST /api/scans/full-photo`. В ответы добавлено поле `photoUrl` (presigned GET, 1 час).
 - 2026-04-27: Добавлены эндпоинты `POST /api/scans/:id/share` и `DELETE /api/scans/:id/share`. Поле `shareToken` в ответе. Подробности — `share.md`.
 - 2026-04-27: Добавлены поля `brand`, `productName` в scan-объект. Эндпоинт `PATCH /api/scans/:id/brand`. В ответе `POST /api/scans/full-photo` появилось поле `brandConfidence`.
+- 2026-04-27: В scan-объект добавлены поля `productImageUrl` и `productImageStatus`. После `POST /api/scans/full-photo` стартует фоновый поиск фото товара (если AI распознал brand+productName) — см. `product-image-finder.md`.

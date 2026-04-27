@@ -37,7 +37,7 @@
 **Аргументы:**
 - `input.prompt` — строка, обязательно.
 - `input.image` — опционально, объект `{ mime: string, base64: string }`. Если есть — добавляется к запросу как картинка.
-- `role` — строка из `'analyst' | 'ocr' | 'both'`. Передаётся в `ai-agents.listActiveByRole(role)` как есть.
+- `role` — строка из `'analyst' | 'ocr' | 'both' | 'image_search'`. Передаётся в `ai-agents.listActiveByRole(role)` как есть. Роль `image_search` обычно вызывается через `findProductImage()` (см. ниже), а не напрямую через `generate()`.
 
 **Возврат:** `Promise<string>` — текстовый ответ модели. JSON-парсинг — на стороне вызывающего.
 
@@ -57,6 +57,21 @@
 | `all_agents_failed` | все агенты упали retryable-ошибками | — |
 
 Дополнительные поля: `err.status` (для HTTP-ошибок), `err.detail` (тело ответа до 500 символов; для `all_agents_failed` — массив `{agent, error}`).
+
+### `findProductImage({ brand, productName })`
+Поиск фото товара через Gemini + встроенный tool `googleSearch`. Используется фоновой подсистемой `services/product-image-finder.js` после успешного распознавания бренда+названия.
+
+**Аргументы:** объект с полями `brand` и `productName` — оба строки.
+
+**Возврат:** `Promise<{ url: string|null, status, reason? }>`, где `status ∈ 'found' | 'not_found' | 'failed'`. **Не бросает наружу** — все ошибки сворачиваются в `status: 'failed'` с диагностикой в `reason`.
+
+**Поведение:**
+- Если активного агента роли `image_search` нет → `{ url:null, status:'not_found' }`.
+- Если активный агент не на провайдере `gemini` → `{ url:null, status:'failed', reason:'unsupported_provider' }`. Fallback на других провайдеров в этой итерации не делается.
+- Промпт просит у Gemini прямую ссылку на изображение с маркетплейсов (wildberries, ozon, goldapple, letu, sephora) или с белым фоном; если ничего не нашлось — Gemini должен вернуть строку `NOT_FOUND`.
+- Тело запроса: `{ contents:[{parts:[{text:prompt}]}], tools:[{ googleSearch:{} }] }`. Если у агента есть `params` — кладутся в `generationConfig`.
+- Парсинг ответа: склеиваются все `parts[].text` первого кандидата. Если в тексте `NOT_FOUND` — `status:'not_found'`. Иначе ищется первый `https://...\.(jpg|jpeg|png|webp)` через regex. Найден — `status:'found'`, нет — `status:'not_found'`.
+- Сетевые ошибки, таймауты и не-2xx HTTP сворачиваются в `status:'failed'` с `reason = err.code` (`http_429`, `http_5xx`, `network`, `timeout`, …).
 
 ## Поддерживаемые провайдеры
 
@@ -90,3 +105,4 @@
 
 ## История изменений
 - 2026-04-26: Создан файл. Роутер с двумя провайдерами (Gemini, OpenAI), fallback по retryable-ошибкам.
+- 2026-04-27: Добавлены роль `image_search` и метод `findProductImage({brand, productName})` для поиска фото товара через Gemini+googleSearch. Метод не бросает наружу — отдаёт `{url, status, reason?}`.

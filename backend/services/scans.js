@@ -10,9 +10,11 @@ const s3 = require('./s3');
 const VALID_SHELVES = ['history', 'mine', 'wishlist', 'rejected'];
 const VALID_VERDICTS = ['good', 'warn', 'bad'];
 
+const VALID_PRODUCT_IMAGE_STATUSES = ['pending', 'found', 'not_found', 'failed'];
+
 const insertStmt = db.prepare(`
-  INSERT INTO scans (user_id, raw_inci, verdict, verdict_title, product_type, brand, product_name, summary, ingredients, profile_snapshot, photo_key, shelf)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'history')
+  INSERT INTO scans (user_id, raw_inci, verdict, verdict_title, product_type, brand, product_name, summary, ingredients, profile_snapshot, photo_key, product_image_url, product_image_status, shelf)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'history')
 `);
 
 const selectByIdStmt = db.prepare(
@@ -43,6 +45,10 @@ const updateBrandStmt = db.prepare(
   `UPDATE scans SET brand = ?, product_name = ? WHERE id = ? AND user_id = ?`
 );
 
+const updateProductImageStmt = db.prepare(
+  `UPDATE scans SET product_image_url = ?, product_image_status = ? WHERE id = ?`
+);
+
 const selectByShareTokenStmt = db.prepare(
   `SELECT * FROM scans WHERE share_token = ?`
 );
@@ -68,7 +74,9 @@ async function createScan(userId, data) {
     data.summary ?? null,
     data.ingredients ? JSON.stringify(data.ingredients) : null,
     data.profileSnapshot ? JSON.stringify(data.profileSnapshot) : null,
-    data.photoKey ?? null
+    data.photoKey ?? null,
+    data.productImageUrl ?? null,
+    data.productImageStatus ?? null
   );
 
   return getScanById(info.lastInsertRowid, userId);
@@ -144,6 +152,21 @@ async function updateShelf(scanId, userId, shelf) {
   return getScanById(scanId, userId);
 }
 
+/**
+ * Обновляет product_image_url / product_image_status у скана.
+ * Без проверки user_id — вызывается из фонового процесса по id скана.
+ * Возвращает true, если строка обновлена.
+ */
+function updateScanProductImage(scanId, { url, status }) {
+  if (status !== null && !VALID_PRODUCT_IMAGE_STATUSES.includes(status)) {
+    const err = new Error('bad_product_image_status');
+    err.code = 'bad_product_image_status';
+    throw err;
+  }
+  const result = updateProductImageStmt.run(url ?? null, status ?? null, scanId);
+  return result.changes > 0;
+}
+
 function deleteScan(scanId, userId) {
   const result = deleteStmt.run(scanId, userId);
   return result.changes > 0;
@@ -173,6 +196,8 @@ function rowToScan(row) {
     ingredients,
     rawInci: row.raw_inci,
     photoKey: row.photo_key,
+    productImageUrl: row.product_image_url ?? null,
+    productImageStatus: row.product_image_status ?? null,
     shareToken: row.share_token,
     shelf: row.shelf,
     profileSnapshot,
@@ -239,6 +264,7 @@ module.exports = {
   getScanById,
   updateShelf,
   updateScanBrand,
+  updateScanProductImage,
   deleteScan,
   createShareToken,
   revokeShareToken,
