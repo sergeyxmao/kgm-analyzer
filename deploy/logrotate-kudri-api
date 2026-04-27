@@ -1,4 +1,5 @@
 /var/log/kudri-api.log {
+    su root root
     daily
     rotate 14
     compress
