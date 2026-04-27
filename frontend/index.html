@@ -1175,6 +1175,133 @@ input, select, textarea { font: inherit; color: inherit; }
   font-size: 14px;
   min-width: auto;
 }
+
+/* ═══════════════════════════════════════════════════════
+   SWIPE-TO-DELETE
+   ═══════════════════════════════════════════════════════ */
+
+.swipe-row {
+  position: relative;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  /* плавная анимация удаления */
+  max-height: 240px;
+  transition: max-height 0.3s ease, margin 0.3s ease, opacity 0.25s ease;
+}
+.swipe-row.removing {
+  max-height: 0;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.swipe-action {
+  position: absolute;
+  inset: 0;
+  background: var(--danger);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-right: 20px;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  transition: background-color 0.15s ease;
+  border-radius: var(--r-md);
+}
+.swipe-action svg {
+  width: 18px;
+  height: 18px;
+  stroke: white;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.swipe-action.armed {
+  background: #A8412B;
+}
+.swipe-card {
+  position: relative;
+  background: transparent;
+  transform: translate3d(0, 0, 0);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  touch-action: pan-y;
+  will-change: transform;
+}
+.swipe-card.dragging {
+  transition: none;
+}
+/* во время drag inline-style transform перебивает :active, поэтому ничего отдельно не отключаем */
+
+/* ═══════════════════════════════════════════════════════
+   MODAL
+   ═══════════════════════════════════════════════════════ */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(42, 31, 26, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.modal-overlay.show {
+  display: flex;
+  opacity: 1;
+}
+.modal-card {
+  background: white;
+  border-radius: var(--r-lg);
+  padding: 28px 24px;
+  width: 100%;
+  max-width: 360px;
+  box-shadow: var(--shadow-lg);
+  transform: scale(0.92);
+  opacity: 0;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease;
+}
+.modal-overlay.show .modal-card {
+  transform: scale(1);
+  opacity: 1;
+}
+.modal-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.25;
+}
+.modal-text {
+  font-size: 13px;
+  color: var(--ink-mute);
+  margin: 8px 0 24px;
+  line-height: 1.45;
+  word-break: break-word;
+}
+.modal-actions {
+  display: flex;
+  gap: 8px;
+}
+.modal-actions .btn {
+  flex: 1;
+  padding: 14px 20px;
+  font-size: 14px;
+}
+.btn-danger {
+  background: var(--danger);
+  color: white;
+  box-shadow: 0 4px 16px rgba(200, 85, 61, 0.3);
+}
+.btn-danger:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(200, 85, 61, 0.4); }
+.btn-danger:active { transform: scale(0.98); }
 </style>
 </head>
 <body>
@@ -1504,6 +1631,18 @@ input, select, textarea { font: inherit; color: inherit; }
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
+
+<!-- MODAL: универсальный confirm -->
+<div class="modal-overlay" id="modal-confirm" role="dialog" aria-modal="true" aria-labelledby="modal-confirm-title">
+  <div class="modal-card">
+    <div class="modal-title" id="modal-confirm-title">Подтвердить действие?</div>
+    <div class="modal-text" id="modal-confirm-text"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="modal-confirm-cancel">Отмена</button>
+      <button class="btn btn-primary" id="modal-confirm-ok">OK</button>
+    </div>
+  </div>
+</div>
 
 <script>
 /* ═══════════════════════════════════════════════════════
@@ -2721,26 +2860,34 @@ const Catalog = {
           : `<button class="action-btn" onclick="event.stopPropagation(); Catalog.shareScan(${s.id})" title="Поделиться">🔗</button>`;
         const editBtn = `<button class="action-btn" onclick="event.stopPropagation(); Catalog.editBrand(${s.id})" title="Редактировать бренд">✏️</button>`;
         const sub = s.productType ? `${dStr} · ${s.shelf} · ${s.productType}` : `${dStr} · ${s.shelf}`;
+        const titleForDelete = escapeHtmlAttr(formatScanTitle(s));
         return `
-          <div class="recent-item" id="recent-item-${s.id}">
-            ${iconHtml}
-            <div class="recent-item-content">
-              <div class="recent-item-name">${formatScanTitle(s)}</div>
-              <div class="recent-item-date">${sub}</div>
-              <div class="brand-edit-inline" id="brand-edit-${s.id}" style="display:none;margin-top:8px">
-                <input type="text" id="brand-edit-${s.id}-brand" placeholder="Бренд" maxlength="200" value="${escapeHtmlAttr(s.brand)}" style="display:block;width:100%;padding:8px;border:1px solid var(--sand);border-radius:var(--r-sm);margin-bottom:6px;font:inherit;background:white">
-                <input type="text" id="brand-edit-${s.id}-name" placeholder="Название товара" maxlength="200" value="${escapeHtmlAttr(s.productName)}" style="display:block;width:100%;padding:8px;border:1px solid var(--sand);border-radius:var(--r-sm);margin-bottom:6px;font:inherit;background:white">
-                <div style="display:flex;gap:6px">
-                  <button class="action-btn" onclick="event.stopPropagation(); Catalog.saveBrandEdit(${s.id})">Сохранить</button>
-                  <button class="action-btn" onclick="event.stopPropagation(); Catalog.cancelBrandEdit(${s.id})">Отмена</button>
+          <div class="swipe-row" data-scan-id="${s.id}" data-scan-title="${titleForDelete}" data-scan-date="${dStr}">
+            <div class="swipe-action" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+              <span>Удалить</span>
+            </div>
+            <div class="swipe-card recent-item" id="recent-item-${s.id}">
+              ${iconHtml}
+              <div class="recent-item-content">
+                <div class="recent-item-name">${formatScanTitle(s)}</div>
+                <div class="recent-item-date">${sub}</div>
+                <div class="brand-edit-inline" id="brand-edit-${s.id}" style="display:none;margin-top:8px">
+                  <input type="text" id="brand-edit-${s.id}-brand" placeholder="Бренд" maxlength="200" value="${escapeHtmlAttr(s.brand)}" style="display:block;width:100%;padding:8px;border:1px solid var(--sand);border-radius:var(--r-sm);margin-bottom:6px;font:inherit;background:white">
+                  <input type="text" id="brand-edit-${s.id}-name" placeholder="Название товара" maxlength="200" value="${escapeHtmlAttr(s.productName)}" style="display:block;width:100%;padding:8px;border:1px solid var(--sand);border-radius:var(--r-sm);margin-bottom:6px;font:inherit;background:white">
+                  <div style="display:flex;gap:6px">
+                    <button class="action-btn" onclick="event.stopPropagation(); Catalog.saveBrandEdit(${s.id})">Сохранить</button>
+                    <button class="action-btn" onclick="event.stopPropagation(); Catalog.cancelBrandEdit(${s.id})">Отмена</button>
+                  </div>
                 </div>
               </div>
+              <span class="recent-item-badge ${verdictMap[s.verdict]}">${txtMap[s.verdict]}</span>
+              <div class="recent-item-share">${editBtn}${shareHtml}</div>
             </div>
-            <span class="recent-item-badge ${verdictMap[s.verdict]}">${txtMap[s.verdict]}</span>
-            <div class="recent-item-share">${editBtn}${shareHtml}</div>
           </div>
         `;
       }).join('');
+      this.attachSwipeHandlers();
     } catch (err) {
       console.warn('[Catalog.load]', err);
       list.innerHTML = `<div class="empty"><div class="empty-text">Не удалось загрузить</div></div>`;
@@ -2818,6 +2965,224 @@ const Catalog = {
     ta.select();
     document.execCommand('copy');
     document.body.removeChild(ta);
+  },
+
+  // ────────── Swipe-to-delete ──────────
+  attachSwipeHandlers() {
+    const list = document.getElementById('catalog-list');
+    if (!list) return;
+    list.querySelectorAll('.swipe-row').forEach(row => {
+      const card = row.querySelector('.swipe-card');
+      const action = row.querySelector('.swipe-action');
+      if (!card || !action || card.dataset.swipeBound === '1') return;
+      card.dataset.swipeBound = '1';
+
+      let startX = 0, startY = 0;
+      let dx = 0;
+      let active = false;     // pointer down — но ещё не решили, swipe или scroll
+      let horizontal = false; // решили: жест горизонтальный
+      let pointerId = null;
+      let armed = false;      // достигли threshold
+      let openedAtThreshold = false;
+
+      const DEAD = 12;            // мёртвая зона до решения
+      const RATIO = 1.5;          // |dx| должен быть в 1.5 раза больше |dy|, чтобы считать жест горизонтальным
+      const THRESHOLD = Math.max(100, card.offsetWidth * 0.4);
+
+      const reset = (animate = true) => {
+        card.classList.toggle('dragging', !animate);
+        card.style.transform = 'translate3d(0, 0, 0)';
+        action.classList.remove('armed');
+        armed = false;
+      };
+
+      const cleanup = () => {
+        active = false;
+        horizontal = false;
+        pointerId = null;
+      };
+
+      const onDown = (e) => {
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        if (e.target.closest('button, input, textarea, .brand-edit-inline, a')) return;
+        // если карточка уже свайпнута и ждёт решения по модалке — не начинаем новый жест
+        if (openedAtThreshold) return;
+
+        active = true;
+        horizontal = false;
+        startX = e.clientX;
+        startY = e.clientY;
+        dx = 0;
+        pointerId = e.pointerId;
+        card.classList.add('dragging');
+      };
+
+      const onMove = (e) => {
+        if (!active || e.pointerId !== pointerId) return;
+        const cdx = e.clientX - startX;
+        const cdy = e.clientY - startY;
+
+        if (!horizontal) {
+          // мёртвая зона
+          if (Math.abs(cdx) < DEAD && Math.abs(cdy) < DEAD) return;
+          if (Math.abs(cdy) > Math.abs(cdx)) {
+            // жест преимущественно вертикальный → отдаём скроллу
+            cleanup();
+            card.classList.remove('dragging');
+            return;
+          }
+          if (cdx < 0 && Math.abs(cdx) > Math.abs(cdy) * RATIO) {
+            horizontal = true;
+            try { card.setPointerCapture(pointerId); } catch (_) {}
+          } else {
+            return;
+          }
+        }
+
+        if (e.cancelable) e.preventDefault();
+        // только влево — слева направо игнорируем
+        dx = Math.min(0, cdx);
+        card.style.transform = `translate3d(${dx}px, 0, 0)`;
+
+        const reachedNow = Math.abs(dx) >= THRESHOLD;
+        if (reachedNow && !armed) {
+          armed = true;
+          action.classList.add('armed');
+          const hf = window.Telegram?.WebApp?.HapticFeedback;
+          try { hf?.impactOccurred?.('medium'); } catch (_) {}
+        } else if (!reachedNow && armed) {
+          armed = false;
+          action.classList.remove('armed');
+        }
+      };
+
+      const onUp = (e) => {
+        if (!active) return;
+        if (pointerId != null && e.pointerId !== pointerId) return;
+        const wasHorizontal = horizontal;
+        const finalDx = dx;
+        try { card.releasePointerCapture(pointerId); } catch (_) {}
+        cleanup();
+
+        if (!wasHorizontal) {
+          card.classList.remove('dragging');
+          return;
+        }
+
+        card.classList.remove('dragging'); // вернуть transition
+
+        if (Math.abs(finalDx) >= THRESHOLD) {
+          // оставляем карточку в свайпнутом положении на время модалки
+          card.style.transform = `translate3d(${-THRESHOLD}px, 0, 0)`;
+          openedAtThreshold = true;
+          const scanId = Number(row.dataset.scanId);
+          const title = row.dataset.scanTitle || 'Скан';
+          const dateStr = row.dataset.scanDate || '';
+          Modal.confirm({
+            title: 'Удалить скан?',
+            text: `${title}${dateStr ? ' · ' + dateStr : ''}`,
+            confirmLabel: 'Удалить',
+            dangerous: true
+          }).then(ok => {
+            openedAtThreshold = false;
+            if (ok) {
+              Catalog.performDelete(row, scanId);
+            } else {
+              card.style.transform = 'translate3d(0, 0, 0)';
+              action.classList.remove('armed');
+            }
+          });
+        } else {
+          card.style.transform = 'translate3d(0, 0, 0)';
+          action.classList.remove('armed');
+        }
+      };
+
+      const onCancel = (e) => {
+        if (!active) return;
+        cleanup();
+        reset(true);
+      };
+
+      card.addEventListener('pointerdown', onDown);
+      card.addEventListener('pointermove', onMove);
+      card.addEventListener('pointerup', onUp);
+      card.addEventListener('pointercancel', onCancel);
+    });
+  },
+
+  async performDelete(row, scanId) {
+    try {
+      await Api.deleteScan(scanId);
+      const hf = window.Telegram?.WebApp?.HapticFeedback;
+      try { hf?.notificationOccurred?.('success'); } catch (_) {}
+      row.classList.add('removing');
+      setTimeout(() => {
+        row.remove();
+        // если каталог опустел — перерисуем для empty-state
+        const list = document.getElementById('catalog-list');
+        if (list && !list.querySelector('.swipe-row')) {
+          this.load(this.currentShelf);
+        }
+      }, 320);
+      App.toast('Удалено');
+      App.refreshRecent();
+    } catch (err) {
+      console.warn('[Catalog.performDelete]', err);
+      const card = row.querySelector('.swipe-card');
+      const action = row.querySelector('.swipe-action');
+      if (card) card.style.transform = 'translate3d(0, 0, 0)';
+      if (action) action.classList.remove('armed');
+      App.toast('Не удалось удалить');
+    }
+  }
+};
+
+// ────────── MODAL ──────────
+const Modal = {
+  _el: null,
+  _onResolve: null,
+
+  _ensure() {
+    if (this._el) return this._el;
+    const el = document.getElementById('modal-confirm');
+    this._el = el;
+    const cancel = el.querySelector('#modal-confirm-cancel');
+    const ok = el.querySelector('#modal-confirm-ok');
+    cancel.addEventListener('click', () => this._close(false));
+    ok.addEventListener('click', () => this._close(true));
+    el.addEventListener('click', (e) => {
+      if (e.target === el) this._close(false);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && el.classList.contains('show')) this._close(false);
+    });
+    return el;
+  },
+
+  confirm({ title, text, confirmLabel, dangerous }) {
+    const el = this._ensure();
+    el.querySelector('#modal-confirm-title').textContent = title || 'Подтвердить?';
+    el.querySelector('#modal-confirm-text').textContent = text || '';
+    const okBtn = el.querySelector('#modal-confirm-ok');
+    okBtn.textContent = confirmLabel || 'OK';
+    okBtn.classList.toggle('btn-danger', !!dangerous);
+    okBtn.classList.toggle('btn-primary', !dangerous);
+
+    // если прошлый промис висит — резолвим как cancel
+    if (this._onResolve) { try { this._onResolve(false); } catch (_) {} this._onResolve = null; }
+
+    el.classList.add('show');
+    return new Promise(resolve => { this._onResolve = resolve; });
+  },
+
+  _close(result) {
+    const el = this._el;
+    if (!el) return;
+    el.classList.remove('show');
+    const r = this._onResolve;
+    this._onResolve = null;
+    if (r) r(!!result);
   }
 };
 
