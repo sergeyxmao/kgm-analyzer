@@ -4,6 +4,7 @@
  */
 
 const crypto = require('crypto');
+const { log } = require('./logger');
 
 const BOT_TOKEN = process.env.TG_BOT_TOKEN;
 const MAX_AGE_SECONDS = 24 * 60 * 60; // 24 часа
@@ -11,7 +12,7 @@ const MAX_AGE_SECONDS = 24 * 60 * 60; // 24 часа
 if (!BOT_TOKEN) {
   // Без токена модуль бесполезен — шумим в stderr при импорте, но не падаем:
   // /health должен продолжать работать даже без TG_BOT_TOKEN.
-  console.warn('[auth] TG_BOT_TOKEN is not set — Telegram auth will fail');
+  log.warn(null, '[auth]', 'TG_BOT_TOKEN is not set — Telegram auth will fail');
 }
 
 /**

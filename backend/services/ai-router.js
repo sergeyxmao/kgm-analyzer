@@ -11,6 +11,7 @@
  */
 
 const agentsService = require('./ai-agents');
+const { log } = require('./logger');
 
 const REQUEST_TIMEOUT_MS = 60000;
 const MAX_DETAIL_LEN = 500;
@@ -40,13 +41,13 @@ async function generate(input, role) {
     try {
       return await callAgent(agent, input);
     } catch (err) {
-      console.warn(`[ai-router] ${agent.name} failed: ${err.code}`);
+      log.warn(null, '[ai-router]', `${agent.name} failed: ${err.code}`);
       if (!isRetryable(err)) throw err;
       failures.push({ agent: agent.name, error: err.code });
     }
   }
 
-  console.error('[ai-router] all agents failed', failures);
+  log.error(null, '[ai-router]', `all agents failed: ${JSON.stringify(failures)}`);
   const e = new Error('all_agents_failed');
   e.code = 'all_agents_failed';
   e.detail = failures;
