@@ -1126,6 +1126,17 @@ input, select, textarea { font: inherit; color: inherit; }
   border-radius: var(--r-sm);
   object-fit: cover;
 }
+
+.recent-item-share {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.recent-item-share .action-btn {
+  padding: 6px 8px;
+  font-size: 14px;
+  min-width: auto;
+}
 </style>
 </head>
 <body>
@@ -1540,6 +1551,12 @@ const Api = {
   },
   deleteScan(id) {
     return this.request(`/api/scans/${id}`, { method: 'DELETE' });
+  },
+  shareScan(id) {
+    return this.request(`/api/scans/${id}/share`, { method: 'POST' });
+  },
+  revokeShare(id) {
+    return this.request(`/api/scans/${id}/share`, { method: 'DELETE' });
   }
 };
 
@@ -2541,6 +2558,10 @@ const Catalog = {
         const iconHtml = s.photoUrl
           ? `<div class="recent-item-icon" style="background:none;padding:0"><img src="${s.photoUrl}" alt=""></div>`
           : `<div class="recent-item-icon">🧴</div>`;
+        const shareHtml = s.shareToken
+          ? `<button class="action-btn" onclick="event.stopPropagation(); Catalog.copyShare(${s.id})" title="Копировать ссылку">📋</button>
+             <button class="action-btn" onclick="event.stopPropagation(); Catalog.revokeShare(${s.id})" title="Удалить ссылку" style="color:var(--danger)">✕</button>`
+          : `<button class="action-btn" onclick="event.stopPropagation(); Catalog.shareScan(${s.id})" title="Поделиться">🔗</button>`;
         return `
           <div class="recent-item">
             ${iconHtml}
@@ -2549,6 +2570,7 @@ const Catalog = {
               <div class="recent-item-date">${dStr} · ${s.shelf}</div>
             </div>
             <span class="recent-item-badge ${verdictMap[s.verdict]}">${txtMap[s.verdict]}</span>
+            <div class="recent-item-share">${shareHtml}</div>
           </div>
         `;
       }).join('');
@@ -2556,6 +2578,56 @@ const Catalog = {
       console.warn('[Catalog.load]', err);
       list.innerHTML = `<div class="empty"><div class="empty-text">Не удалось загрузить</div></div>`;
     }
+  },
+
+  async shareScan(scanId) {
+    try {
+      const { url } = await Api.shareScan(scanId);
+      await this.copyToClipboard(url);
+      App.toast('Ссылка скопирована');
+      await this.load(this.currentShelf);
+    } catch (err) {
+      App.toast('Не удалось создать ссылку');
+    }
+  },
+
+  async copyShare(scanId) {
+    try {
+      const { scans } = await Api.listScans(this.currentShelf, 100);
+      const scan = scans.find(s => s.id === scanId);
+      if (!scan?.shareToken) { App.toast('Ссылка не найдена'); return; }
+      const url = `https://elenadortman.store/share/${scan.shareToken}`;
+      await this.copyToClipboard(url);
+      App.toast('Ссылка скопирована');
+    } catch (err) {
+      App.toast('Не удалось скопировать');
+    }
+  },
+
+  async revokeShare(scanId) {
+    if (!confirm('Удалить публичную ссылку? Старый URL перестанет работать.')) return;
+    try {
+      await Api.revokeShare(scanId);
+      App.toast('Ссылка отозвана');
+      await this.load(this.currentShelf);
+    } catch (err) {
+      App.toast('Не удалось отозвать');
+    }
+  },
+
+  async copyToClipboard(text) {
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
   }
 };
 

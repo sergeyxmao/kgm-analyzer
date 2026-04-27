@@ -110,6 +110,38 @@ Vision-режим: фото → S3 → AI → запись в БД одним в
 
 Подробности — см. `photo-analysis.md`.
 
+### `POST /api/scans/:id/share`
+Создать или вернуть существующий публичный токен для шеринга. Идемпотентно. Защищён `requireTelegramAuth`. Подробнее — `share.md`.
+
+**Ответ `200 OK`:**
+```json
+{ "token": "550e8400-e29b-41d4-a716-446655440000", "url": "https://elenadortman.store/share/550e8400-..." }
+```
+
+**Ошибки:**
+| HTTP | `error` | Описание |
+|---|---|---|
+| 400 | `bad_id` | `:id` не число |
+| 404 | `not_found` | Скан не существует или не принадлежит пользователю |
+| 401 | `unauthorized` | Нет/невалидный заголовок |
+| 500 | `share_failed` | Неожиданная серверная ошибка |
+
+### `DELETE /api/scans/:id/share`
+Отозвать публичный токен. После этого старый URL даёт 404. Защищён `requireTelegramAuth`. Подробнее — `share.md`.
+
+**Ответ `200 OK`:**
+```json
+{ "ok": true }
+```
+
+**Ошибки:**
+| HTTP | `error` | Описание |
+|---|---|---|
+| 400 | `bad_id` | `:id` не число |
+| 404 | `not_found` | Скан не существует, не принадлежит пользователю или уже не имеет токена |
+| 401 | `unauthorized` | Нет/невалидный заголовок |
+| 500 | `revoke_failed` | Неожиданная серверная ошибка |
+
 ### `DELETE /api/scans/:id`
 Удалить скан. Защищён `requireTelegramAuth`.
 
@@ -140,6 +172,7 @@ Vision-режим: фото → S3 → AI → запись в БД одним в
 | `rawInci` | string \| null | Исходный текст INCI, если анализ был по тексту |
 | `photoKey` | string \| null | S3-ключ фото в Beget Cloud Storage |
 | `photoUrl` | string \| null | Presigned GET URL на 1 час (генерируется при каждом запросе) |
+| `shareToken` | string \| null | UUID v4 публичной ссылки или `null` если скан приватный (см. `share.md`) |
 | `shelf` | `'history'\|'mine'\|'wishlist'\|'rejected'` | |
 | `profileSnapshot` | object \| null | Снимок профиля на момент анализа |
 | `createdAt` | string (ISO-8601) | |
@@ -150,8 +183,8 @@ Vision-режим: фото → S3 → AI → запись в БД одним в
 ## Что не делает
 - Не индексирует ингредиенты для поиска — это для будущей базы знаний.
 - Не пересчитывает вердикт при изменении профиля — каждый скан хранит `profileSnapshot` для воспроизводимости.
-- Нет публикации/шаринга сканов между пользователями.
 
 ## История изменений
 - 2026-04-24: Создан файл. CRUD endpoints, 4 полки, `profile_snapshot` прилетает миграцией 002.
 - 2026-04-26: Колонка `photo_path` → `photo_key` (миграция 004). Добавлен `POST /api/scans/full-photo`. В ответы добавлено поле `photoUrl` (presigned GET, 1 час).
+- 2026-04-27: Добавлены эндпоинты `POST /api/scans/:id/share` и `DELETE /api/scans/:id/share`. Поле `shareToken` в ответе. Подробности — `share.md`.

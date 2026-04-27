@@ -45,3 +45,4 @@ SQLite. Файл `data/kudri.db`. Работает через `better-sqlite3` (
 ## История изменений
 - 2026-04-24: Миграция 001. Начальная схема (users, profiles, scans, settings, schema_migrations).
 - 2026-04-26: Миграция 004. Переименована `scans.photo_path` → `scans.photo_key` (теперь хранит S3-ключ, а не путь).
+- 2026-04-27: Миграция 005. Добавлена `scans.share_token` (TEXT, UUID v4, partial UNIQUE индекс `idx_scans_share_token` на NOT NULL значениях). Используется для публичного шеринга сканов — см. `share.md`.

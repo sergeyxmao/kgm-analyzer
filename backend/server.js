@@ -167,6 +167,35 @@ app.put('/api/scans/:id/shelf', requireTelegramAuth, async (req, res) => {
   }
 });
 
+// POST /api/scans/:id/share — создать или вернуть существующий публичный токен
+app.post('/api/scans/:id/share', requireTelegramAuth, async (req, res) => {
+  try {
+    const scanId = parseInt(req.params.id, 10);
+    if (!scanId) return res.status(400).json({ error: 'bad_id' });
+    const result = await scans.createShareToken(scanId, req.user.id);
+    if (!result) return res.status(404).json({ error: 'not_found' });
+    const url = `https://elenadortman.store/share/${result.token}`;
+    res.json({ token: result.token, url });
+  } catch (err) {
+    log.error(req, '[POST /api/scans/:id/share]', err);
+    res.status(500).json({ error: 'share_failed' });
+  }
+});
+
+// DELETE /api/scans/:id/share — отозвать публичный токен
+app.delete('/api/scans/:id/share', requireTelegramAuth, async (req, res) => {
+  try {
+    const scanId = parseInt(req.params.id, 10);
+    if (!scanId) return res.status(400).json({ error: 'bad_id' });
+    const ok = await scans.revokeShareToken(scanId, req.user.id);
+    if (!ok) return res.status(404).json({ error: 'not_found' });
+    res.json({ ok: true });
+  } catch (err) {
+    log.error(req, '[DELETE /api/scans/:id/share]', err);
+    res.status(500).json({ error: 'revoke_failed' });
+  }
+});
+
 // DELETE /api/scans/:id — удалить скан (только свой)
 app.delete('/api/scans/:id', requireTelegramAuth, (req, res) => {
   try {
@@ -241,6 +270,9 @@ app.use(getWebhookHandler());
 
 // Админ-роуты (CRUD для AI-агентов). Все эндпоинты требуют is_admin=1.
 app.use('/api/admin', require('./routes/admin'));
+
+// Публичный роутер шеринга — без auth
+app.use('/share', require('./routes/share'));
 
 // Все прочие пути — 404 JSON
 app.use((req, res) => {
