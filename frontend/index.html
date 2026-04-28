@@ -273,7 +273,7 @@ input, select, textarea { font: inherit; color: inherit; }
   max-width: var(--container);
   margin: 0 auto;
   width: 100%;
-  padding: 24px 24px 100px;
+  padding: 16px 24px 88px;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -281,7 +281,7 @@ input, select, textarea { font: inherit; color: inherit; }
 .onb-progress {
   display: flex;
   gap: 6px;
-  margin-bottom: 32px;
+  margin-bottom: 18px;
 }
 .onb-progress-bar {
   flex: 1;
@@ -313,7 +313,7 @@ input, select, textarea { font: inherit; color: inherit; }
 }
 .onb-title {
   font-family: var(--font-display);
-  font-size: 32px;
+  font-size: 24px;
   font-weight: 500;
   line-height: 1.1;
   letter-spacing: -0.8px;
@@ -329,18 +329,18 @@ input, select, textarea { font: inherit; color: inherit; }
 .onb-sub {
   font-size: 15px;
   color: var(--ink-soft);
-  margin-bottom: 32px;
+  margin-bottom: 18px;
   max-width: 360px;
 }
 .onb-options {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 .onb-option {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 18px 20px;
+  padding: 12px 14px;
   background: rgba(255, 255, 255, 0.7);
   border: 1.5px solid transparent;
   border-radius: var(--r-md);
@@ -356,9 +356,9 @@ input, select, textarea { font: inherit; color: inherit; }
   box-shadow: var(--shadow-sm);
 }
 .onb-option-emoji {
-  font-size: 28px;
-  width: 44px;
-  height: 44px;
+  font-size: 22px;
+  width: 36px;
+  height: 36px;
   display: grid;
   place-items: center;
   background: var(--peach-100);
@@ -369,12 +369,12 @@ input, select, textarea { font: inherit; color: inherit; }
 .onb-option-content { flex: 1; min-width: 0; }
 .onb-option-title {
   font-weight: 600;
-  font-size: 15px;
+  font-size: 14px;
   color: var(--ink);
   margin-bottom: 2px;
 }
 .onb-option-desc {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--ink-mute);
   line-height: 1.4;
 }
@@ -518,11 +518,19 @@ input, select, textarea { font: inherit; color: inherit; }
   display: grid;
   place-items: center;
   color: white;
+  overflow: hidden;
 }
 .auth-platform-icon svg { width: 32px; height: 32px; }
+.auth-platform-icon img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 .auth-platform-icon.tg { background: #229ED9; }
 .auth-platform-icon.vk { background: #0077FF; }
 .auth-platform-icon.web { background: linear-gradient(135deg, var(--peach-300), var(--rose-300)); }
+.avatar-initials {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 500;
+  color: var(--terracotta);
+}
 .auth-greeting {
   font-family: var(--font-display);
   font-size: 22px;
@@ -586,7 +594,7 @@ input, select, textarea { font: inherit; color: inherit; }
    ═══════════════════════════════════════════════════════ */
 
 .greeting {
-  margin-bottom: 24px;
+  margin-bottom: 14px;
   padding: 4px 4px 0;
 }
 .greeting-eyebrow {
@@ -599,7 +607,7 @@ input, select, textarea { font: inherit; color: inherit; }
 }
 .greeting-title {
   font-family: var(--font-display);
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 500;
   line-height: 1.15;
   letter-spacing: -0.5px;
@@ -615,14 +623,14 @@ input, select, textarea { font: inherit; color: inherit; }
 .hero-scan {
   position: relative;
   width: 100%;
-  padding: 32px 24px;
+  padding: 22px 20px;
   border-radius: var(--r-xl);
   background:
     radial-gradient(ellipse 300px 200px at 30% 30%, rgba(255, 255, 255, 0.5) 0%, transparent 60%),
     linear-gradient(135deg, var(--rose-300) 0%, var(--terracotta) 60%, var(--peach-400) 100%);
   color: white;
   text-align: left;
-  margin-bottom: 24px;
+  margin-bottom: 14px;
   overflow: hidden;
   box-shadow: var(--shadow-lg);
   transition: transform 0.2s;
@@ -646,7 +654,7 @@ input, select, textarea { font: inherit; color: inherit; }
 }
 .hero-scan-title {
   font-family: var(--font-display);
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 500;
   line-height: 1.05;
   letter-spacing: -0.5px;
@@ -657,7 +665,7 @@ input, select, textarea { font: inherit; color: inherit; }
 .hero-scan-sub {
   font-size: 13px;
   opacity: 0.85;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 .hero-scan-cta {
   display: inline-flex;
@@ -676,7 +684,7 @@ input, select, textarea { font: inherit; color: inherit; }
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin: 28px 4px 14px;
+  margin: 18px 4px 14px;
 }
 .section-title {
   font-family: var(--font-display);
@@ -696,7 +704,7 @@ input, select, textarea { font: inherit; color: inherit; }
 .profile-summary {
   background: white;
   border-radius: var(--r-lg);
-  padding: 20px;
+  padding: 14px 16px;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -704,13 +712,21 @@ input, select, textarea { font: inherit; color: inherit; }
   margin-bottom: 20px;
 }
 .profile-avatar {
-  width: 56px; height: 56px;
+  width: 48px; height: 48px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--peach-200), var(--rose-200));
   display: grid;
   place-items: center;
   font-size: 24px;
   flex-shrink: 0;
+  overflow: hidden;
+}
+.profile-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.profile-avatar.has-initials {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--terracotta);
 }
 .profile-info { flex: 1; min-width: 0; }
 .profile-info-name { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
@@ -720,11 +736,6 @@ input, select, textarea { font: inherit; color: inherit; }
   display: flex;
   flex-wrap: wrap;
   gap: 4px 10px;
-}
-.profile-edit {
-  font-size: 12px;
-  color: var(--rose-400);
-  font-weight: 500;
 }
 
 .recent-list { display: grid; gap: 10px; }
@@ -773,7 +784,7 @@ input, select, textarea { font: inherit; color: inherit; }
 .tip-card {
   background: linear-gradient(135deg, var(--gold-soft), var(--peach-100));
   border-radius: var(--r-lg);
-  padding: 20px;
+  padding: 16px;
   margin-bottom: 8px;
   position: relative;
   overflow: hidden;
@@ -788,7 +799,7 @@ input, select, textarea { font: inherit; color: inherit; }
 }
 .tip-card-text {
   font-family: var(--font-display);
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1.4;
   color: var(--ink);
   font-style: italic;
@@ -1381,12 +1392,11 @@ input, select, textarea { font: inherit; color: inherit; }
     </button>
 
     <div class="profile-summary" onclick="App.go('profile')">
-      <div class="profile-avatar" id="profile-avatar">🌀</div>
+      <div class="profile-avatar" id="profile-avatar"></div>
       <div class="profile-info">
         <div class="profile-info-name" id="profile-name">Твой профиль</div>
         <div class="profile-info-meta" id="profile-meta">—</div>
       </div>
-      <span class="profile-edit">→</span>
     </div>
 
     <div class="section-head">
@@ -2116,9 +2126,13 @@ const Auth = {
     if (this.platform === 'tg') {
       const u = window.Telegram.WebApp.initDataUnsafe.user;
       const name = u.first_name || 'друг';
+      const initials = ((u.first_name || '').charAt(0) + (u.last_name || '').charAt(0)).toUpperCase() || '?';
+      const avatar = u.photo_url
+        ? `<img src="${u.photo_url}" alt="">`
+        : `<div class="avatar-initials">${initials}</div>`;
       card.innerHTML = `
-        <div class="auth-platform-icon tg">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/></svg>
+        <div class="auth-platform-icon">
+          ${avatar}
         </div>
         <div class="auth-greeting">Привет, <em>${name}</em>!</div>
         <div class="auth-greeting-sub">Войти через свой Telegram</div>
@@ -3276,8 +3290,19 @@ const App = {
     document.getElementById('profile-meta').textContent = meta || 'Заполни профиль';
     document.getElementById('profile-name').textContent = u.name || 'Твой профиль';
 
-    const emojiMap = { '2A':'〰️','2B':'🌊','2C':'💫','3A':'🌀','3B':'🎀','3C':'🌪','4':'⚡' };
-    if (emojiMap[p.curlType]) document.getElementById('profile-avatar').textContent = emojiMap[p.curlType];
+    const avatar = document.getElementById('profile-avatar');
+    if (u.photoUrl) {
+      avatar.classList.remove('has-initials');
+      avatar.innerHTML = `<img src="${u.photoUrl}" alt="">`;
+    } else if (u.name) {
+      const parts = u.name.trim().split(/\s+/);
+      const initials = ((parts[0] || '').charAt(0) + (parts[1] || '').charAt(0)).toUpperCase() || '?';
+      avatar.classList.add('has-initials');
+      avatar.textContent = initials;
+    } else {
+      avatar.classList.add('has-initials');
+      avatar.textContent = '?';
+    }
 
     // Кнопка админ-панели в профиле
     const adminBtn = document.getElementById('profile-admin-btn');
