@@ -250,6 +250,22 @@ input, select, textarea { font: inherit; color: inherit; }
   font-weight: 600;
 }
 .tab.active svg { stroke-width: 2; }
+.tab-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--peach-200), var(--rose-200));
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--terracotta);
+}
+.tab-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.tab-avatar.fallback { background: transparent; }
+.tab-avatar.fallback svg { width: 20px; height: 20px; }
 
 /* ═══════════════════════════════════════════════════════
    ОНБОРДИНГ — отдельный фуллскрин
@@ -623,8 +639,8 @@ input, select, textarea { font: inherit; color: inherit; }
 .hero-scan {
   position: relative;
   width: 100%;
-  padding: 22px 20px;
-  border-radius: var(--r-xl);
+  padding: 14px 16px;
+  border-radius: var(--r-lg);
   background:
     radial-gradient(ellipse 300px 200px at 30% 30%, rgba(255, 255, 255, 0.5) 0%, transparent 60%),
     linear-gradient(135deg, var(--rose-300) 0%, var(--terracotta) 60%, var(--peach-400) 100%);
@@ -632,51 +648,58 @@ input, select, textarea { font: inherit; color: inherit; }
   text-align: left;
   margin-bottom: 14px;
   overflow: hidden;
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-md);
   transition: transform 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 .hero-scan:active { transform: scale(0.98); }
-.hero-scan::before {
-  content: '';
-  position: absolute;
-  top: -40%; right: -20%;
-  width: 200px; height: 200px;
-  background: radial-gradient(circle, rgba(255,255,255,0.25), transparent 70%);
+.hero-scan-icon {
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
 }
-.hero-scan-eyebrow {
-  font-size: 11px;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  font-weight: 500;
-  opacity: 0.85;
-  margin-bottom: 8px;
+.hero-scan-icon svg {
+  width: 22px;
+  height: 22px;
+  color: white;
+}
+.hero-scan-text {
+  flex: 1;
+  min-width: 0;
 }
 .hero-scan-title {
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: 17px;
   font-weight: 500;
-  line-height: 1.05;
-  letter-spacing: -0.5px;
-  margin-bottom: 4px;
+  line-height: 1.15;
+  letter-spacing: -0.3px;
   font-variation-settings: "opsz" 96;
 }
 .hero-scan-title em { font-style: italic; }
 .hero-scan-sub {
-  font-size: 13px;
+  font-size: 12px;
   opacity: 0.85;
-  margin-bottom: 14px;
+  margin-top: 2px;
 }
-.hero-scan-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
+.hero-scan-arrow {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
   background: white;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.hero-scan-arrow svg {
+  width: 16px;
+  height: 16px;
   color: var(--terracotta);
-  border-radius: var(--r-pill);
-  font-weight: 600;
-  font-size: 13px;
 }
 
 /* Карточки разделов */
@@ -699,43 +722,6 @@ input, select, textarea { font: inherit; color: inherit; }
   color: var(--rose-400);
   font-weight: 500;
   letter-spacing: 0.2px;
-}
-
-.profile-summary {
-  background: white;
-  border-radius: var(--r-lg);
-  padding: 14px 16px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  box-shadow: var(--shadow-sm);
-  margin-bottom: 20px;
-}
-.profile-avatar {
-  width: 48px; height: 48px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--peach-200), var(--rose-200));
-  display: grid;
-  place-items: center;
-  font-size: 24px;
-  flex-shrink: 0;
-  overflow: hidden;
-}
-.profile-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
-.profile-avatar.has-initials {
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 500;
-  color: var(--terracotta);
-}
-.profile-info { flex: 1; min-width: 0; }
-.profile-info-name { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
-.profile-info-meta {
-  font-size: 12px;
-  color: var(--ink-mute);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 10px;
 }
 
 .recent-list { display: grid; gap: 10px; }
@@ -1128,7 +1114,6 @@ input, select, textarea { font: inherit; color: inherit; }
 
 @media (max-width: 380px) {
   .greeting-title, .onb-title { font-size: 26px; }
-  .hero-scan-title { font-size: 24px; }
 }
 
 .recent-item-icon img {
@@ -1382,22 +1367,17 @@ input, select, textarea { font: inherit; color: inherit; }
     </div>
 
     <button class="hero-scan" onclick="App.go('scan')">
-      <div class="hero-scan-eyebrow">Сканер состава</div>
-      <div class="hero-scan-title">Проверить <em>средство</em></div>
-      <div class="hero-scan-sub">Сфотографируй INCI — получи вердикт за 5 секунд</div>
-      <span class="hero-scan-cta">
-        Начать
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-      </span>
-    </button>
-
-    <div class="profile-summary" onclick="App.go('profile')">
-      <div class="profile-avatar" id="profile-avatar"></div>
-      <div class="profile-info">
-        <div class="profile-info-name" id="profile-name">Твой профиль</div>
-        <div class="profile-info-meta" id="profile-meta">—</div>
+      <div class="hero-scan-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
       </div>
-    </div>
+      <div class="hero-scan-text">
+        <div class="hero-scan-title">Проверить <em>средство</em></div>
+        <div class="hero-scan-sub">Сфотографируй INCI</div>
+      </div>
+      <div class="hero-scan-arrow">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </div>
+    </button>
 
     <div class="section-head">
       <div class="section-title">Последние сканы</div>
@@ -1571,7 +1551,9 @@ input, select, textarea { font: inherit; color: inherit; }
         Каталог
       </button>
       <button class="tab" data-screen="profile" onclick="App.go('profile')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span class="tab-avatar fallback" id="tab-avatar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </span>
         Профиль
       </button>
     </div>
@@ -2268,6 +2250,8 @@ const Auth = {
     } else {
       Onboarding.start();
     }
+
+    App.renderTabAvatar();
   },
 
   logout() {
@@ -3260,6 +3244,8 @@ const App = {
       this.refreshProfile();
       this.refreshRecent();
     }
+
+    if (Storage.get('user')) this.renderTabAvatar();
   },
 
   go(screen) {
@@ -3287,22 +3273,29 @@ const App = {
     const thMap = { thin:'тонкие', medium:'средние', thick:'толстые' };
 
     const meta = [curlMap[p.curlType], porMap[p.porosity], thMap[p.thickness]].filter(Boolean).join(' · ');
-    document.getElementById('profile-meta').textContent = meta || 'Заполни профиль';
-    document.getElementById('profile-name').textContent = u.name || 'Твой профиль';
+    const metaEl = document.getElementById('profile-meta');
+    if (metaEl) metaEl.textContent = meta || 'Заполни профиль';
+    const nameEl = document.getElementById('profile-name');
+    if (nameEl) nameEl.textContent = u.name || 'Твой профиль';
 
     const avatar = document.getElementById('profile-avatar');
-    if (u.photoUrl) {
-      avatar.classList.remove('has-initials');
-      avatar.innerHTML = `<img src="${u.photoUrl}" alt="">`;
-    } else if (u.name) {
-      const parts = u.name.trim().split(/\s+/);
-      const initials = ((parts[0] || '').charAt(0) + (parts[1] || '').charAt(0)).toUpperCase() || '?';
-      avatar.classList.add('has-initials');
-      avatar.textContent = initials;
-    } else {
-      avatar.classList.add('has-initials');
-      avatar.textContent = '?';
+    if (avatar) {
+      if (u.photoUrl) {
+        avatar.classList.remove('has-initials');
+        avatar.innerHTML = `<img src="${u.photoUrl}" alt="">`;
+      } else if (u.name) {
+        const parts = u.name.trim().split(/\s+/);
+        const initials = ((parts[0] || '').charAt(0) + (parts[1] || '').charAt(0)).toUpperCase() || '?';
+        avatar.classList.add('has-initials');
+        avatar.textContent = initials;
+      } else {
+        avatar.classList.add('has-initials');
+        avatar.textContent = '?';
+      }
     }
+
+    // Аватар в нижней навигации
+    this.renderTabAvatar();
 
     // Кнопка админ-панели в профиле
     const adminBtn = document.getElementById('profile-admin-btn');
@@ -3310,6 +3303,26 @@ const App = {
 
     // Бейдж админа в шапке
     this.renderAdminBadge();
+  },
+
+  renderTabAvatar() {
+    const el = document.getElementById('tab-avatar');
+    if (!el) return;
+    const u = Storage.get('user') || {};
+    const fallbackSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+
+    if (u.photoUrl) {
+      el.classList.remove('fallback');
+      el.innerHTML = `<img src="${u.photoUrl}" alt="">`;
+    } else if (u.name) {
+      const parts = u.name.trim().split(/\s+/);
+      const initials = ((parts[0] || '').charAt(0) + (parts[1] || '').charAt(0)).toUpperCase() || '?';
+      el.classList.remove('fallback');
+      el.textContent = initials;
+    } else {
+      el.classList.add('fallback');
+      el.innerHTML = fallbackSvg;
+    }
   },
 
   renderAdminBadge() {
